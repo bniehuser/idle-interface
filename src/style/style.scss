@@ -1,0 +1,36 @@
+@import "common";
+@import "icons";
+
+// fonts
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..700');
+
+// init
+body {
+  background: $main-background; color: $main-font;
+  font-family:'Jetbrains Mono', monospace;
+}
+
+
+@keyframes embolden {
+  0% {
+    font-variation-settings: 'wght' 100;
+    color:$main-font;
+  }
+  60% {
+    font-variation-settings: 'wght' 700;
+    color:lighten($main-font, 50%);
+  }
+
+  100% {
+    font-variation-settings: 'wght' 100;
+    color:$main-font;
+  }
+}
+
+
+.flash {
+  font-size:120%;
+  animation: embolden 2000ms infinite forwards;
+}
+
+

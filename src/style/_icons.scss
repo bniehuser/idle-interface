@@ -1,0 +1,27 @@
+@import "common";
+
+.pos {
+  color: $main-green;
+  @include icon-before('\25B2');
+}
+
+.neg {
+  color: $main-red;
+  @include icon-before('\25BC');
+}
+
+.money {
+  @include icon-before('\01F4B0');
+}
+
+.offense {
+  @include icon-before('🗡️️', '\01F5E1');
+}
+
+.defense {
+  @include icon-before('\01F6E1\FE0F', '\01F6E1');
+}
+
+.war {
+  @include icon-before('\2694\FE0F', '\2694');
+}
