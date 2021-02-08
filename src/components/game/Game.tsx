@@ -1,7 +1,8 @@
 import React, { FC } from 'react';
+import Panel from './hud/Panel';
 
 export const Game:FC = () => {
-	return <div style={{fontSize:'200%'}}>
+	return <Panel width={'33%'} right={true}>
 		<div className="money">money</div>
 		<div className="offense">offense</div>
 		<div className="offense alt">offense</div>
@@ -9,5 +10,5 @@ export const Game:FC = () => {
 		<div className="war alt">war</div>
 		<div className="defense">defense</div>
 		<div className="defense alt">defense</div>
-	</div>;
+	</Panel>;
 };

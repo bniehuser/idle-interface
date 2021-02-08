@@ -10,8 +10,8 @@ $main-font: #ccc;
 
 @mixin icon-before($content, $alt: 0) {
   &:before {
-    width: 1rem;
-    margin-right:.25rem;
+    display:inline-block;
+    width: 1.5rem;
     content: $content;
   }
 

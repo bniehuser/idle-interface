@@ -32,17 +32,16 @@ class App extends React.PureComponent {
     }
     render() {
         return (
-            <>
-				<Game/>
             <GameEngine
                 systems={[
 					clockHandler,
                 ]}
                 entities={{
-				    'clock': {time:gameTime, position:[0,0],renderer:<Clock time={gameTime}/>}
+				    'clock': {renderer:<Clock time={gameTime}/>}
 				}}
-                style={{width:800,height:600,backgroundColor:'black'}} onUpdate={() => {}}/>
-                </>
+                style={{width:window.innerWidth,height:window.innerHeight,backgroundColor:'black'}} onUpdate={() => {}}>
+				<Game/>
+                </GameEngine>
         );
     }
 }

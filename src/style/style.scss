@@ -1,13 +1,23 @@
 @import "common";
+@import "interface";
 @import "icons";
+@import "clock";
 
 // fonts
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100..700');
 
 // init
 body {
+  margin:0;
+  padding:0;
+  height:100%;
+  width:100%;
   background: $main-background; color: $main-font;
   font-family:'Jetbrains Mono', monospace;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  box-sizing:border-box;
 }
 
 
