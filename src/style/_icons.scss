@@ -3,11 +3,13 @@
 .pos {
   color: $main-green;
   @include icon-before('\25B2');
+  &:before { font-size:100%; width:auto; padding-right:.25em; }
 }
 
 .neg {
   color: $main-red;
   @include icon-before('\25BC');
+  &:before { font-size:100%; width:auto; padding-right:.25em; }
 }
 
 .money {

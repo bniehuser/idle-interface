@@ -1,9 +1,10 @@
 @import "common";
 
 .clock {
-  position:absolute;
-  top:0;
-  right:0;
+  float:right;
+  margin:0;
+  top:.25rem;
+  right:.25rem;
   padding:.25rem;
   font-size:120%;
   font-variation-settings: 'wght' 400;

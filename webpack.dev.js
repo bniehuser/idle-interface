@@ -7,7 +7,7 @@ module.exports = {
     mode: "development",
     devServer: {
         contentBase: path.join(__dirname, "dist/"),
-        port: 3000,
+        port: 3223,
         //publicPath: "http://localhost:3000/dist/",
         // hotOnly: true
     }

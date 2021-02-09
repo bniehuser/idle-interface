@@ -11,6 +11,7 @@ $main-font: #ccc;
 @mixin icon-before($content, $alt: 0) {
   &:before {
     display:inline-block;
+    font-size:110%;
     width: 1.5rem;
     content: $content;
   }

@@ -17,7 +17,7 @@
     "no-expression-statement": false,
     "member-ordering": [
       true,
-      "variables-before-functions"
+      {"order": "fields-first"}
     ],
     "no-any": false,
     "no-inferrable-types": [
@@ -81,7 +81,8 @@
     "eofline": false,
     "indent": [
       true,
-      "spaces"
+      "spaces",
+      2
     ],
     "max-line-length": [
       true,
