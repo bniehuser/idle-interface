@@ -12,18 +12,19 @@
   &:before { font-size:100%; width:auto; padding-right:.25em; }
 }
 
-.money {
-  @include icon-before('\01F4B0');
-}
-
-.offense {
-  @include icon-before('🗡️️', '\01F5E1');
-}
-
-.defense {
-  @include icon-before('\01F6E1\FE0F', '\01F6E1');
-}
-
-.war {
-  @include icon-before('\2694\FE0F', '\2694');
-}
+.money { @include icon-before('\01F4B0'); }
+.offense { @include icon-before('🗡️️', '\01F5E1'); }
+.defense { @include icon-before('\01F6E1\FE0F', '\01F6E1'); }
+.war { @include icon-before('\2694\FE0F', '\2694'); }
+.farm { @include icon-before('\01F4B0'); }
+.love { @include icon-before('\01F4B0'); }
+.baby { @include icon-before('\01F476'); }
+.boy { @include icon-before('\01F4B0'); }
+.girl { @include icon-before('\01F4B0'); }
+.man { @include icon-before('\01F4B0'); }
+.woman { @include icon-before('\01F4B0'); }
+.old-man { @include icon-before('\01F4B0'); }
+.old-woman { @include icon-before('\01F4B0'); }
+.wood { @include icon-before('\1FAB5'); }
+.sun { @include icon-before('\1F31E'); }
+.moon { @include icon-before('\1F31B'); }
