@@ -10,7 +10,7 @@ interface IEmojiProps {
 const EmojiNote: FC<IEmojiProps> = ({type, alt, children}) => {
     const doType = typeof type === 'string' ? [type] : (type || []);
     const doAlt = typeof alt === 'string' ? [alt] : (alt || []);
-    return <div>{doType.map((type, i) => <Emoji type={type} alt={doAlt[i]}/>)}{children}</div>;
+    return <div>{doType.map((type, i) => <Emoji key={i} type={type} alt={doAlt[i]}/>)}{children}</div>;
 };
 
 export default EmojiNote;

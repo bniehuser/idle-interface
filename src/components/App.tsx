@@ -1,42 +1,15 @@
-import React from 'react';
-import { GameEngine, GameEngineSystem } from 'react-game-engine';
+import React, { FC, memo } from 'react';
 
 import '../style/style.scss';
+import LeftPanel from './game/layout/LeftPanel';
+import MainPanel from './game/layout/MainPanel';
+import { GameProvider } from '../context/game';
 
-import { Game } from './game/Game';
-import Clock from './game/hud/Clock';
-import Panel from './game/layout/Panel';
-
-let gameTime = new Date('3600-06-01T00:00:00Z');
-const TIME_WARP = 1000;
-
-const clockHandler: GameEngineSystem = (entities, {time}) => {
-    gameTime.setTime(gameTime.getTime() + (time.delta * TIME_WARP));
-    return entities;
+const App: FC = () => {
+  return <GameProvider>
+    <LeftPanel style={{minWidth: '250px', flexBasis: '300px'}}/>
+    <MainPanel style={{flexGrow: 4, flex: '', minWidth: '600px', flexBasis: '800px', backgroundColor: '#000'}}/>
+  </GameProvider>;
 };
 
-class App extends React.PureComponent {
-
-    constructor(P: any, S: any) {
-        super(P, S);
-    }
-
-    render() {
-        return (
-            <>
-                <Panel style={{minWidth: '250px', flexBasis: '300px'}}><Game/></Panel>
-                <GameEngine
-                    systems={[
-                        clockHandler,
-                    ]}
-                    entities={{
-                        'clock': {time: gameTime, renderer: <Clock time={gameTime}/>},
-                    }}
-                    style={{flexGrow: 4, flex: '', minWidth: '600px', flexBasis: '800px', backgroundColor: '#000'}}>
-                </GameEngine>
-            </>
-        );
-    }
-}
-
-export default App;
+export default memo(App);

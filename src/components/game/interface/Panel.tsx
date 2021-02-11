@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, memo, ReactNode } from 'react';
 import CSS from 'csstype';
 
 interface PanelProps {
@@ -6,6 +6,7 @@ interface PanelProps {
   right?: boolean;
   left?: boolean;
   style?: CSS.Properties;
+  children?: ReactNode;
 }
 
 const Panel: FC<PanelProps> = ({children, style}) => {
@@ -15,4 +16,4 @@ const Panel: FC<PanelProps> = ({children, style}) => {
   ><div className={'interface'}>{children}</div></div>;
 };
 
-export default Panel;
+export default memo(Panel);
