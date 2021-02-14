@@ -59,7 +59,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         notifications: [
-          {type: action.key, content: action.content, at: state.gameTime} as GameNotification,
+          {type: action.key, content: action.content, at: new Date(state.gameTime)} as GameNotification,
           ...state.notifications,
         ].slice(0, 100),
       };
@@ -74,7 +74,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         people: { ...state.people, [p.id]: newP },
         notifications: [
-          {type: 'birthday', content: notice, at: state.gameTime} as GameNotification,
+          {type: 'birthday', content: notice, at: new Date(state.gameTime)} as GameNotification,
           ...state.notifications,
         ].slice(0, 100),
       };

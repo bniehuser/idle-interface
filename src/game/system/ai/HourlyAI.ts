@@ -1,10 +1,11 @@
 import { GameEngineSystem } from 'react-game-engine';
 import moment from 'moment';
+import { GameEntities } from '../../../context/game';
 
 let lastHour = 0;
 let running = false;
 
-const runHourly = (entities: any) => new Promise((resolve) => {
+const runHourly = (entities: GameEntities) => new Promise((resolve) => {
   const hour = moment(entities.gameState.gameTime).hour();
   if (hour !== lastHour) {
     if (!running) {
@@ -13,6 +14,17 @@ const runHourly = (entities: any) => new Promise((resolve) => {
       //   const someVal = { value: Math.random() * Math.random() * Math.random() };
       //   delete someVal.value;
       // }
+      Object.values(entities.gameState.people).forEach(p => {
+        if (Math.random() > .9996) {
+          entities.gameDispatch({type: 'notify', key: 'speech', content: `${p.avatar}${p.name.given} ${p.name.family} says 'hey!'`});
+        }
+        if (Math.random() > .9999) {
+          entities.gameDispatch({type: 'notify', key: 'thought', content: `${p.avatar}${p.name.given} ${p.name.family} is daydreaming...`});
+        }
+        if (Math.random() > .9999) {
+          entities.gameDispatch({type: 'notify', key: 'yell', content: `${p.avatar}${p.name.given} ${p.name.family} is VERY ANGRY...`});
+        }
+      });
       running = false;
       console.log('resolving hourly...');
     } else {

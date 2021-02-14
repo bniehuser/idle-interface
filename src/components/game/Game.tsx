@@ -12,7 +12,7 @@ import { createPerson } from '../../game/entity/person';
 const Game: FC<{style: CSS.Properties}> = ({style}) => {
   const [gameState, gameDispatch] = useGame();
   useEffect(() => {
-    const people = Array(100).fill(true).map(() => {
+    const people = Array(500).fill(true).map(() => {
       const birthday = new Date();
       birthday.setTime(gameState.gameTime.getTime() - (Math.random() * 80 * 365.25 * 24 * 60 * 60 * 1000));
       return createPerson(gameState.gameTime, birthday);

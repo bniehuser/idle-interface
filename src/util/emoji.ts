@@ -17,6 +17,9 @@ export const emojis = {
     'moon': 0x1F31B,
     'birthday': 0x1F382,
     'gear': 0x2699,
+    'speech': 0x1F4AC,
+    'thought': 0x1F4AD,
+    'yell': 0x1F5EF,
 };
 export type EmojiKey = keyof typeof emojis;
 export const emojiVariants = {
@@ -30,7 +33,7 @@ export const emojiVariants = {
 export type EmojiVariant = keyof typeof emojiVariants;
 
 const defaultVariant = (emoji: EmojiKey) => {
-    if (['offense', 'defense', 'war', 'gear'].some(i => i === emoji)) { return 'default'; }
+    if (['offense', 'defense', 'war', 'gear', 'yell'].some(i => i === emoji)) { return 'default'; }
     return undefined;
 };
 
