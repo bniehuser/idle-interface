@@ -7,7 +7,7 @@ import { GameProvider } from '../context/game';
 
 const App: FC = () => {
   return <GameProvider>
-    <LeftPanel style={{minWidth: '250px', flexBasis: '300px'}}/>
+    <LeftPanel style={{minWidth: '250px', flexBasis: '400px'}}/>
     <MainPanel style={{flexGrow: 4, flex: '', minWidth: '600px', flexBasis: '800px', backgroundColor: '#000'}}/>
   </GameProvider>;
 };
