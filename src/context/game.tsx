@@ -1,27 +1,35 @@
 import React, { createContext, useReducer } from 'react';
 import { Person, processBirthday } from '../game/entity/person';
-import { EmojiKey, htmlEmoji } from '../util/emoji';
-import Val from '../components/game/interface/Val';
+import { EmojiKey } from '../util/emoji';
+import lzwCompress from 'lzwcompress';
 
 export type GameAction =
   { type: 'addClock', delta: number }
-  | { type: 'addPlayer', player: Person }
-  | { type: 'removePlayer', player: Person }
+  | { type: 'addPlayer', person: Person }
+  | { type: 'removePlayer', person: Person }
   | { type: 'updatePerson', person: Partial<Person> }
-  | { type: 'notify', content: React.ReactNode, key?: EmojiKey }
+  | { type: 'notify', content: GameEvent|string, key?: EmojiKey }
   | { type: 'personBirthday', person: Person }
-  | { type: 'setPeople', payload: Person[] };
+  | { type: 'setPeople', payload: Person[] }
+  | { type: 'saveGame' }
+  | { type: 'loadGame' };
 
 type People = {[id: number]: Person};
 
+export interface GameEvent {
+  type: string;
+  person?: number;
+  val?: string|number;
+}
+
 export interface GameNotification {
   type?: EmojiKey;
-  content: React.ReactNode;
-  at: Date;
+  content: GameEvent|string;
+  at: number;
 }
 
 export interface GameState {
-  gameTime: Date;
+  gameTime: number;
   people: People;
   notifications: GameNotification[];
 }
@@ -43,8 +51,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'addClock':
       // not immutable, just set it.
-      state.gameTime.setTime(state.gameTime.getTime() + action.delta);
-      return state;
+      return { ...state, gameTime: state.gameTime + action.delta };
     case 'setPeople':
       // not immutable, just set it.
       state.people = action.payload.reduce((a, c) => { a[c.id] = c; return a; }, {} as People);
@@ -59,7 +66,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         notifications: [
-          {type: action.key, content: action.content, at: new Date(state.gameTime)} as GameNotification,
+          {type: action.key, content: action.content, at: state.gameTime} as GameNotification,
           ...state.notifications,
         ].slice(0, 100),
       };
@@ -68,23 +75,35 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const p = action.person;
       const updates = processBirthday(p, state.gameTime);
       const newP = Object.assign(p, updates);
-      const notice = <>Happy <Val val={newP.age}/>, {newP.avatar}{newP.name.given} {newP.name.family}!</>;
-      console.log(htmlEmoji('birthday') + notice, state.gameTime);
+      const notice = {type: 'birthday', person: newP.id, val: newP.age}; // <>Happy <Val val={newP.age}/>, {newP.avatar}{newP.name.given} {newP.name.family}!</>;
       return {
         ...state,
         people: { ...state.people, [p.id]: newP },
         notifications: [
-          {type: 'birthday', content: notice, at: new Date(state.gameTime)} as GameNotification,
+          {type: 'birthday', content: notice, at: state.gameTime} as GameNotification,
           ...state.notifications,
         ].slice(0, 100),
       };
+    case 'saveGame':
+      const origSize = JSON.stringify(state).length;
+      const compressed = lzwCompress.pack(state);
+      const compressedSize = compressed.length;
+      console.log('compressed', origSize, compressedSize, compressedSize / origSize);
+      localStorage.setItem('gameState', compressed);
+      return state;
+    case 'loadGame':
+      const saved = localStorage.getItem('gameState');
+      if (saved) {
+        return lzwCompress.unpack(saved);
+      }
+      return state;
     default:
       throw new Error(`Unhandled action type: ${action.type}`);
   }
 }
 
 function GameProvider({children}: GameProviderProps) {
-  const [state, dispatch] = useReducer(gameReducer, {gameTime: new Date('3600-06-01 00:00:00'), people: [], notifications: []});
+  const [state, dispatch] = useReducer(gameReducer, {gameTime: new Date('3600-06-01 00:00:00').getTime(), people: [], notifications: []});
   return (
     <GameStateContext.Provider value={state}>
       <GameDispatchContext.Provider value={dispatch}>

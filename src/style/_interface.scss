@@ -30,3 +30,26 @@
   font-size:85%;
   margin-right:.5rem;
 }
+
+.svg-icon {
+  height:1.2rem;
+  line-height:1rem;
+  margin-right:-.3rem;
+  margin-top:-.25rem;
+  margin-bottom:.45rem;
+  transform:translateY(.6rem);
+  stroke-width: .05rem;
+  stroke: $main-font;
+  //fill: #FF0000; // rgba(0,0,0,0);
+  //path {
+  //  fill-opacity: 1 !important;
+  //  fill: #ff0000 !important;
+  //}
+}
+
+.tooltipContainer {
+  position:relative;
+  display:inline-block;
+  font-weight:initial;
+  animation: none;
+}

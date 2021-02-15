@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import moment from 'moment';
 
-const DateNote: FC<{t: Date}> = ({t}) => {
+const DateNote: FC<{t: number}> = ({t}) => {
   const mt = moment(t);
   return <div className={'date-note'}>
     {mt.format('MM/DD/yy')}

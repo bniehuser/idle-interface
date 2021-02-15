@@ -1,3 +1,11 @@
+declare module 'lzwcompress' {
+  class lzwCompress {
+    static pack(data: any): string;
+    static unpack(data: string): any;
+  }
+  export default lzwCompress;
+}
+
 declare module 'react-game-engine' {
 
   import CSS from 'csstype';

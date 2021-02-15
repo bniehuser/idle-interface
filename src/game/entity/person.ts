@@ -16,7 +16,7 @@ export interface Person {
   };
   skinTone: SkinTone;
   age: number;
-  birthday: Date;
+  birthday: number;
   gender: Gender;
   avatar: string;
   ai: AI;
@@ -30,8 +30,8 @@ export interface Mood {
 }
 
 export interface Relationship {
-  source: Person;
-  subject: Person;
+  source: number; // person
+  subject: number; // person
   love: number;
   respect: number;
   rivalry: number;
@@ -59,8 +59,8 @@ export const getRandomFamilyName = () => {
   return randArrayItem(surNames);
 };
 
-export const calcAge = (birthday: Date, now: Date) => {
-  return moment(now).diff(birthday, 'years');
+export const calcAge = (birthday: number, now: number) => {
+  return moment(now).diff(moment(birthday), 'years');
 };
 
 export const calcAvatar = (gender: Gender, skinTone: SkinTone, age: number) => {
@@ -77,7 +77,7 @@ export const calcAvatar = (gender: Gender, skinTone: SkinTone, age: number) => {
   return htmlEmoji(emojiKey, skinTone);
 };
 
-export const processBirthday = (p: Person, now: Date) => {
+export const processBirthday = (p: Person, now: number) => {
   const age = calcAge(p.birthday, now);
   return {age, avatar: calcAvatar(p.gender, p.skinTone, age)};
 };
@@ -88,7 +88,7 @@ type Gender = typeof genders[number];
 const skinTones = ['light', 'med-light', 'med', 'med-dark', 'dark'] as const;
 type SkinTone = typeof skinTones[number];
 
-export const createPerson = (now: Date, birthday: Date, gender?: Gender, parent1?: Person, parent2?: Person): Person => {
+export const createPerson = (now: number, birthday: number, gender?: Gender, parent1?: Person, parent2?: Person): Person => {
   const useGender = gender || randArrayItem(genders);
   const useSkin = randArrayItem(skinTones);
   const useAge = calcAge(birthday, now);
@@ -109,12 +109,12 @@ export const createPerson = (now: Date, birthday: Date, gender?: Gender, parent1
     schedule: {obligations: []},
   };
   if (parent1) {
-    child.relationships.push({source: child, subject: parent1, love: 1, respect: 1, camaraderie: 0, rivalry: 0});
-    parent1.relationships.push({source: parent1, subject: child, love: 1, respect: 0, camaraderie: .25, rivalry: .25});
+    child.relationships.push({source: child.id, subject: parent1.id, love: 1, respect: 1, camaraderie: 0, rivalry: 0});
+    parent1.relationships.push({source: parent1.id, subject: child.id, love: 1, respect: 0, camaraderie: .25, rivalry: .25});
   }
   if (parent2) {
-    child.relationships.push({source: child, subject: parent2, love: 1, respect: 1, camaraderie: 0, rivalry: 0});
-    parent2.relationships.push({source: parent2, subject: child, love: 1, respect: 0, camaraderie: .25, rivalry: .25});
+    child.relationships.push({source: child.id, subject: parent2.id, love: 1, respect: 1, camaraderie: 0, rivalry: 0});
+    parent2.relationships.push({source: parent2.id, subject: child.id, love: 1, respect: 0, camaraderie: .25, rivalry: .25});
   }
   return child;
 };

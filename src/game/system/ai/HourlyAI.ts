@@ -2,11 +2,12 @@ import { GameEngineSystem } from 'react-game-engine';
 import moment from 'moment';
 import { GameEntities } from '../../../context/game';
 
-let lastHour = 0;
+let lastHour: number;
 let running = false;
 
-const runHourly = (entities: GameEntities) => new Promise((resolve) => {
+const runHourly = (entities: GameEntities) => new Promise<void>((resolve) => {
   const hour = moment(entities.gameState.gameTime).hour();
+  // console.log(entities.gameState.gameTime, hour);
   if (hour !== lastHour) {
     if (!running) {
       running = true;
