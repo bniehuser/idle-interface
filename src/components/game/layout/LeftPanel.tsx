@@ -30,10 +30,9 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
         <EmojiNote type={['moon', 'sun', 'baby', 'war']} alt={[undefined, undefined, 'light']}>Icon</EmojiNote>
         <br/><br/>
         <EmojiNote type='money'><Val val={-221}/> from opportunity</EmojiNote>
+        <br/>
         <button onClick={() => dispatch({type: 'notify', content: 'padding notes go here', key: 'gear'})}>Add Note</button>
-        <br/>
         <button onClick={() => dispatch({type: 'saveGame'})}>Save Game</button>
-        <br/>
         <button onClick={() => dispatch({type: 'loadGame'})}>Load Game</button>
         <br/>
       </div>

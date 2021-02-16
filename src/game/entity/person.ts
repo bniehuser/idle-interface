@@ -88,13 +88,19 @@ type Gender = typeof genders[number];
 const skinTones = ['light', 'med-light', 'med', 'med-dark', 'dark'] as const;
 type SkinTone = typeof skinTones[number];
 
-export const createPerson = (now: number, birthday: number, gender?: Gender, parent1?: Person, parent2?: Person): Person => {
+export const createPerson = (now: number, id: number, birthday?: number, gender?: Gender, parent1?: Person, parent2?: Person): Person => {
   const useGender = gender || randArrayItem(genders);
   const useSkin = randArrayItem(skinTones);
-  const useAge = calcAge(birthday, now);
+  let useBirthday = birthday;
+  if (!useBirthday) {
+    const b = new Date();
+    b.setTime(now - (Math.random() * 80 * 365.25 * 24 * 60 * 60 * 1000));
+    useBirthday = b.getTime();
+  }
+  const useAge = calcAge(useBirthday, now);
   const child: Person = {
-    id: getNewPersonId(),
-    birthday,
+    id,
+    birthday: useBirthday,
     name: {
       given: getRandomGivenName(useGender),
       family: parent1?.name.family || getRandomFamilyName(),

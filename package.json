@@ -13,7 +13,8 @@
     "react-game-engine": "^1.0.0",
     "react-scrollbars-custom": "^4.0.25",
     "regenerator-runtime": "^0.13.7",
-    "rot-js": "^2.1.5"
+    "rot-js": "^2.1.5",
+    "zipson": "^0.2.12"
   },
   "devDependencies": {
     "@babel/core": "^7.12.13",

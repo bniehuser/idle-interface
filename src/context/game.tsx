@@ -1,12 +1,15 @@
 import React, { createContext, useReducer } from 'react';
-import { Person, processBirthday } from '../game/entity/person';
+import { createPerson, Person, processBirthday } from '../game/entity/person';
 import { EmojiKey } from '../util/emoji';
-import lzwCompress from 'lzwcompress';
+import LZipper from '../util/data/LZipper';
+import CJSON from '../util/data/CJSON';
+import { bytesToSize } from '../util/lang-format';
 
 export type GameAction =
   { type: 'addClock', delta: number }
-  | { type: 'addPlayer', person: Person }
-  | { type: 'removePlayer', person: Person }
+  | { type: 'addRandomPerson' }
+  | { type: 'addRandomPeople', num: number }
+  | { type: 'removePerson', personId: number }
   | { type: 'updatePerson', person: Partial<Person> }
   | { type: 'notify', content: GameEvent|string, key?: EmojiKey }
   | { type: 'personBirthday', person: Person }
@@ -30,6 +33,8 @@ export interface GameNotification {
 
 export interface GameState {
   gameTime: number;
+  personId: number;
+  placeId: number;
   people: People;
   notifications: GameNotification[];
 }
@@ -42,34 +47,49 @@ export type GameEntities = {
   [k: string]: any,
 };
 
+const createGameState = (): GameState => {
+  return {
+    gameTime: new Date('3600-06-01 00:00:00').getTime(),
+    personId: 0,
+    placeId: 0,
+    people: [],
+    notifications: [],
+  };
+};
+
 type GameProviderProps = { children: React.ReactNode };
 
 const GameStateContext = createContext<GameState | undefined>(undefined);
 const GameDispatchContext = createContext<React.Dispatch<GameAction> | undefined>(undefined);
 
 function gameReducer(state: GameState, action: GameAction): GameState {
+  let personId: number;
   switch (action.type) {
     case 'addClock':
       // not immutable, just set it.
       return { ...state, gameTime: state.gameTime + action.delta };
     case 'setPeople':
       // not immutable, just set it.
-      state.people = action.payload.reduce((a, c) => { a[c.id] = c; return a; }, {} as People);
-      return state;
-    case 'updatePerson':
-      // not immutable, just set it.
-      if (action.person.id) {
-        state.people[action.person.id] = Object.assign(state.people[action.person.id] || {}, action.person);
+      const people = action.payload.reduce((a, c) => { a[c.id] = c; return a; }, {} as People);
+      return {...state, people };
+    case 'addRandomPeople':
+      personId = state.personId;
+      const newPeople: People = {};
+      for (let i = 0; i < action.num; i++) {
+        personId++;
+        newPeople[personId] = createPerson(state.gameTime, personId);
       }
-      return state;
+      return { ...applyNotification(state, `Added ${action.num} people to game.`), personId, people: Object.assign(state.people, newPeople) };
+    case 'addRandomPerson':
+      personId = state.personId;
+      personId++;
+      return {...state, personId, people: {...state.people, [personId]: createPerson(state.gameTime, personId)}};
+    case 'updatePerson':
+      if (!action.person.id) { return state; }
+      const person = Object.assign(state.people[action.person.id] || {}, action.person);
+      return {...state, people: {...state.people, [action.person.id]: person }};
     case 'notify':
-      return {
-        ...state,
-        notifications: [
-          {type: action.key, content: action.content, at: state.gameTime} as GameNotification,
-          ...state.notifications,
-        ].slice(0, 100),
-      };
+      return applyNotification(state, action.content, action.key);
     case 'personBirthday':
       // not immutable, just set it.
       const p = action.person;
@@ -77,24 +97,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newP = Object.assign(p, updates);
       const notice = {type: 'birthday', person: newP.id, val: newP.age}; // <>Happy <Val val={newP.age}/>, {newP.avatar}{newP.name.given} {newP.name.family}!</>;
       return {
-        ...state,
+        ...applyNotification(state, notice, 'birthday'),
         people: { ...state.people, [p.id]: newP },
-        notifications: [
-          {type: 'birthday', content: notice, at: state.gameTime} as GameNotification,
-          ...state.notifications,
-        ].slice(0, 100),
       };
     case 'saveGame':
-      const origSize = JSON.stringify(state).length;
-      const compressed = lzwCompress.pack(state);
-      const compressedSize = compressed.length;
-      console.log('compressed', origSize, compressedSize, compressedSize / origSize);
+      const compressed = LZipper.compress(CJSON.stringify(state));
       localStorage.setItem('gameState', compressed);
-      return state;
+      return applyNotification(state, `Game Saved (${bytesToSize(compressed.length)})`);
     case 'loadGame':
       const saved = localStorage.getItem('gameState');
       if (saved) {
-        return lzwCompress.unpack(saved);
+        return CJSON.parse(LZipper.decompress(saved));
       }
       return state;
     default:
@@ -102,8 +115,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
+export const applyNotification = (state: GameState, content: string|GameEvent, key?: EmojiKey) =>
+  ({...state, notifications: [{content, type: key || 'gear', at: state.gameTime}, ...state.notifications].slice(0, 100)});
+
 function GameProvider({children}: GameProviderProps) {
-  const [state, dispatch] = useReducer(gameReducer, {gameTime: new Date('3600-06-01 00:00:00').getTime(), people: [], notifications: []});
+  const [state, dispatch] = useReducer(gameReducer, createGameState());
   return (
     <GameStateContext.Provider value={state}>
       <GameDispatchContext.Provider value={dispatch}>
