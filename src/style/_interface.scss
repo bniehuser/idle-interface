@@ -25,6 +25,23 @@
     box-sizing:border-box;
 }
 
+.modal-screen {
+  position: absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background: rgba(0,0,0,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  .interface {
+    width:auto;
+    min-width:33%;
+    height:auto;
+  }
+}
+
 .date-note {
   color:darken($main-font, 25%);
   font-size:85%;
@@ -65,5 +82,73 @@ button {
   &:hover {
     background:fade_out($main-font, .66);
     color:lighten($main-font, 15%);
+  }
+}
+
+$if-dark: fade_out(darken($main-background, 50%), .5);
+$if-light: fade_out(darken($main-font, 30%), .5);
+
+.scrollable {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: $if-dark $if-light;
+  &::-webkit-scrollbar {
+    width: .5rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $if-dark;
+    border-radius: 1rem;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: $if-light;
+    border-radius: 1rem;
+    border: 0; // .1rem solid $if-light;
+  }
+}
+
+.progress-bar {
+  display: inline-block;
+  border-radius: 1rem;
+  border: 1px solid $main-font;
+  min-width: 250px;
+  &.feature {
+    margin: 2em;
+  }
+  .progress-min-label {
+    font-size:80%;
+    &.feature {
+      position: absolute;
+      top: -1em;
+      left: 0;
+      transform:translateX(-50%);
+    }
+  }
+  .progress-current {
+    height: 1em;
+    border-radius: 1rem;
+    background: $main-green;
+    margin:-1px;
+    border: 1px solid $main-font;
+    .progress-current-label {
+      font-size:80%;
+      &.feature {
+        position: absolute;
+        bottom: -1em;
+        right: 0;
+        transform:translateX(-50%);
+      }
+    }
+  }
+  .progress-max-label {
+    font-size:80%;
+    &.feature {
+      position: absolute;
+      top: -1em;
+      right: 0;
+      transform:translateX(-50%);
+    }
   }
 }

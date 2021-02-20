@@ -4,11 +4,10 @@ import Clock from './hud/Clock';
 import { GameEntities, useGame } from '../../context/game';
 import CSS from 'csstype';
 import GameTime from '../../game/system/GameTime';
-import HourlyAI from '../../game/system/ai/HourlyAI';
-import MomentaryAI from '../../game/system/ai/MomentaryAI';
-import DailyAI from '../../game/system/ai/DailyAI';
+import Map from './display/Map';
+import AI from '../../game/system/ai/AI';
 
-const Game: FC<{style: CSS.Properties}> = ({style}) => {
+const Game: FC<{ style: CSS.Properties }> = ({style}) => {
   const [gameState, gameDispatch] = useGame();
   useEffect(() => {
     gameDispatch({type: 'addRandomPeople', num: 500});
@@ -16,11 +15,9 @@ const Game: FC<{style: CSS.Properties}> = ({style}) => {
   }, []);
   return <GameEngine
     systems={[
-      (entities: GameEntities) => ({ ...entities, gameState }), // this need SERIOUS rethought
+      (entities: GameEntities) => ({...entities, gameState}), // this need SERIOUS rethought
       GameTime,
-      DailyAI,
-      HourlyAI,
-      MomentaryAI,
+      AI,
     ]}
     entities={{
       gameState,
@@ -28,7 +25,9 @@ const Game: FC<{style: CSS.Properties}> = ({style}) => {
       clock: {renderer: <Clock/>},
     }}
     style={style}
-  />;
+  >
+    <Map/>
+  </GameEngine>;
 };
 
 export default memo(Game);

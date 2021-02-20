@@ -7,6 +7,8 @@ import { bytesToSize } from '../util/lang-format';
 
 export type GameAction =
   { type: 'addClock', delta: number }
+  | { type: 'setClock', now: number }
+  | { type: 'fastForward', speed: number, processTime: number }
   | { type: 'addRandomPerson' }
   | { type: 'addRandomPeople', num: number }
   | { type: 'removePerson', personId: number }
@@ -32,7 +34,11 @@ export interface GameNotification {
 }
 
 export interface GameState {
+  realStart: number;
   gameTime: number;
+  gameLastTime: number;
+  processTime: number;
+  fastForward: number;
   personId: number;
   placeId: number;
   people: People;
@@ -47,9 +53,15 @@ export type GameEntities = {
   [k: string]: any,
 };
 
+export const gameStartTime = new Date('3600-06-01 00:00:00').getTime();
+
 const createGameState = (): GameState => {
   return {
-    gameTime: new Date('3600-06-01 00:00:00').getTime(),
+    realStart: Date.now(),
+    gameTime: gameStartTime,
+    gameLastTime: gameStartTime,
+    processTime:  gameStartTime,
+    fastForward: 0,
     personId: 0,
     placeId: 0,
     people: [],
@@ -67,7 +79,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'addClock':
       // not immutable, just set it.
-      return { ...state, gameTime: state.gameTime + action.delta };
+      return { ...state, gameLastTime: state.processTime, gameTime: state.gameTime + action.delta };
+    case 'setClock':
+      // not immutable, just set it.
+      return { ...state, gameLastTime: state.gameTime, gameTime: action.now };
+    case 'fastForward':
+      return { ...state, fastForward: action.speed, processTime: action.processTime };
     case 'setPeople':
       // not immutable, just set it.
       const people = action.payload.reduce((a, c) => { a[c.id] = c; return a; }, {} as People);

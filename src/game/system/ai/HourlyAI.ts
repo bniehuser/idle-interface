@@ -1,12 +1,13 @@
 import { GameEngineSystem } from 'react-game-engine';
 import moment from 'moment';
 import { GameEntities } from '../../../context/game';
+import { DAY } from '../../../util/const/time';
 
 let lastHour: number;
 let running = false;
 
 const runHourly = (entities: GameEntities) => new Promise<void>((resolve) => {
-  const hour = moment(entities.gameState.gameTime).hour();
+  const hour = moment(entities.gameState.processTime).hour();
   // console.log(entities.gameState.gameTime, hour);
   if (hour !== lastHour) {
     if (!running) {
@@ -17,13 +18,13 @@ const runHourly = (entities: GameEntities) => new Promise<void>((resolve) => {
       // }
       Object.values(entities.gameState.people).forEach(p => {
         if (Math.random() > .9996) {
-          entities.gameDispatch({type: 'notify', key: 'speech', content: `${p.avatar}${p.name.given} ${p.name.family} says 'hey!'`});
+          if (entities.gameState.fastForward < DAY) { entities.gameDispatch({type: 'notify', key: 'speech', content: `${p.avatar}${p.name.given} ${p.name.family} says 'hey!'`}); }
         }
         if (Math.random() > .9999) {
-          entities.gameDispatch({type: 'notify', key: 'thought', content: `${p.avatar}${p.name.given} ${p.name.family} is daydreaming...`});
+          if (entities.gameState.fastForward < DAY) { entities.gameDispatch({type: 'notify', key: 'thought', content: `${p.avatar}${p.name.given} ${p.name.family} is daydreaming...`}); }
         }
         if (Math.random() > .9999) {
-          entities.gameDispatch({type: 'notify', key: 'yell', content: `${p.avatar}${p.name.given} ${p.name.family} is VERY ANGRY...`});
+          if (entities.gameState.fastForward < DAY) { entities.gameDispatch({type: 'notify', key: 'yell', content: `${p.avatar}${p.name.given} ${p.name.family} is VERY ANGRY...`}); }
         }
       });
       running = false;

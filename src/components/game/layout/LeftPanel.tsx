@@ -8,7 +8,6 @@ import HeartIcon from '../interface/HeartIcon';
 import StarIcon from '../interface/StarIcon';
 import Tooltip from '../interface/Tooltip';
 import Notification from '../interface/Notification';
-import { Scrollbar } from 'react-scrollbars-custom';
 
 const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
 
@@ -37,10 +36,8 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
         <br/>
       </div>
       <h3>Notifications:</h3>
-      <div style={{flex: 1}}>
-        <Scrollbar>
+      <div className={'scrollable'} style={{flex: 1}}>
         {game.notifications.map((n, i) => <Notification key={`n_${i}`} n={n} p={typeof n.content !== 'string' ? (n.content.person ? game.people[n.content.person] : undefined) : undefined}/>)}
-        </Scrollbar>
       </div>
     </div>
   </Panel>;

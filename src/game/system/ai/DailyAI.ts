@@ -1,18 +1,19 @@
 import { GameEngineSystem } from 'react-game-engine';
 import moment from 'moment';
 import { GameEntities } from '../../../context/game';
+import { YEAR } from '../../../util/const/time';
 
 let lastDay = 0;
 let running = false;
 
-const runDaily = (entities: GameEntities) => new Promise((resolve) => {
-  const day = moment(entities.gameState.gameTime).dayOfYear();
+const runDaily = (entities: GameEntities) => new Promise<void>((resolve) => {
+  const day = moment(entities.gameState.processTime).dayOfYear();
   if (day !== lastDay) {
     if (!running) {
       running = true;
       Object.values(entities.gameState.people).forEach((p) => {
         if (moment(p.birthday).dayOfYear() === day) {
-          entities.gameDispatch({type: 'personBirthday', person: p});
+          if (entities.gameState.fastForward < YEAR) { entities.gameDispatch({type: 'personBirthday', person: p}); }
         }
       });
       running = false;

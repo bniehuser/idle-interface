@@ -1,9 +1,10 @@
-declare module 'lzwcompress' {
-  class lzwCompress {
-    static pack(data: any): string;
-    static unpack(data: string): any;
-  }
-  export default lzwCompress;
+declare module '*.png' {
+  const value: any;
+  export default value;
+}
+declare module '*.jpg' {
+  const value: any;
+  export default value;
 }
 
 declare module 'react-game-engine' {
