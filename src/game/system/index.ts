@@ -1,2 +1,5 @@
-export * as GameTime from './GameTime';
+import GameTime from './GameTime';
+
 export * from './ai';
+
+export { GameTime };

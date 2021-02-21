@@ -1,9 +1,9 @@
 import { AI } from '../component/ai';
 import { Schedule } from '../component/schedule';
 import { NameQualifier } from '../../util/names';
-import { data as maleNames } from '../../data/names/names-male.json';
-import { data as femaleNames } from '../../data/names/names-female.json';
-import { data as surNames } from '../../data/names/names-surnames.json';
+import maleNames from '../../data/names/names-male.json';
+import femaleNames from '../../data/names/names-female.json';
+import surNames from '../../data/names/names-surnames.json';
 import moment from 'moment';
 import { randArrayItem } from '../../util/data-access';
 import { EmojiKey, htmlEmoji } from '../../util/emoji';
@@ -47,16 +47,16 @@ export const getNewPersonId = () => {
 export const getRandomGivenName = (gender: NameQualifier) => {
   switch (gender) {
     case 'male':
-      return randArrayItem(maleNames);
+      return randArrayItem(maleNames.data);
     case 'female':
-      return randArrayItem(femaleNames);
+      return randArrayItem(femaleNames.data);
     default:
       return 'Androgynous';
   }
 };
 
 export const getRandomFamilyName = () => {
-  return randArrayItem(surNames);
+  return randArrayItem(surNames.data);
 };
 
 export const calcAge = (birthday: number, now: number) => {

@@ -37,7 +37,7 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
       </div>
       <h3>Notifications:</h3>
       <div className={'scrollable'} style={{flex: 1}}>
-        {game.notifications.map((n, i) => <Notification key={`n_${i}`} n={n} p={typeof n.content !== 'string' ? (n.content.person ? game.people[n.content.person] : undefined) : undefined}/>)}
+        {game.notifications?.map((n, i) => <Notification key={`n_${i}`} n={n} p={typeof n.content !== 'string' ? (n.content.person ? game.people[n.content.person] : undefined) : undefined}/>)}
       </div>
     </div>
   </Panel>;

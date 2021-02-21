@@ -2,22 +2,22 @@ import React, { createContext, useReducer } from 'react';
 import { createPerson, Person, processBirthday } from '../game/entity/person';
 import { EmojiKey } from '../util/emoji';
 import LZipper from '../util/data/LZipper';
-import CJSON from '../util/data/CJSON';
 import { bytesToSize } from '../util/lang-format';
 
 export type GameAction =
   { type: 'addClock', delta: number }
   | { type: 'setClock', now: number }
-  | { type: 'fastForward', speed: number, processTime: number }
+  | { type: 'fastForward', speed: number }
   | { type: 'addRandomPerson' }
   | { type: 'addRandomPeople', num: number }
   | { type: 'removePerson', personId: number }
   | { type: 'updatePerson', person: Partial<Person> }
-  | { type: 'notify', content: GameEvent|string, key?: EmojiKey }
+  | { type: 'notify', content: GameEvent|string, key?: EmojiKey, at?: number }
   | { type: 'personBirthday', person: Person }
   | { type: 'setPeople', payload: Person[] }
   | { type: 'saveGame' }
-  | { type: 'loadGame' };
+  | { type: 'loadGame' }
+  | { type: '_test', data: { [k: string]: string|number } };
 
 type People = {[id: number]: Person};
 
@@ -34,10 +34,11 @@ export interface GameNotification {
 }
 
 export interface GameState {
+  _test?: {
+    [k: string]: string|number,
+  },
   realStart: number;
   gameTime: number;
-  gameLastTime: number;
-  processTime: number;
   fastForward: number;
   personId: number;
   placeId: number;
@@ -46,10 +47,15 @@ export interface GameState {
 }
 export type GameDispatch = React.Dispatch<GameAction>;
 
+export type GameBlackboard = {
+	[k: string]: any,
+}
+
 // for use with react-game-engine
-export type GameEntities = {
-  gameState: GameState,
-  gameDispatch: GameDispatch,
+export type Game = {
+  state: GameState,
+  dispatch: GameDispatch,
+  blackboard: GameBlackboard,
   [k: string]: any,
 };
 
@@ -59,8 +65,6 @@ const createGameState = (): GameState => {
   return {
     realStart: Date.now(),
     gameTime: gameStartTime,
-    gameLastTime: gameStartTime,
-    processTime:  gameStartTime,
     fastForward: 0,
     personId: 0,
     placeId: 0,
@@ -77,16 +81,11 @@ const GameDispatchContext = createContext<React.Dispatch<GameAction> | undefined
 function gameReducer(state: GameState, action: GameAction): GameState {
   let personId: number;
   switch (action.type) {
-    case 'addClock':
-      // not immutable, just set it.
-      return { ...state, gameLastTime: state.processTime, gameTime: state.gameTime + action.delta };
     case 'setClock':
-      // not immutable, just set it.
-      return { ...state, gameLastTime: state.gameTime, gameTime: action.now };
+      return { ...state, gameTime: action.now };
     case 'fastForward':
-      return { ...state, fastForward: action.speed, processTime: action.processTime };
+      return { ...state, fastForward: action.speed };
     case 'setPeople':
-      // not immutable, just set it.
       const people = action.payload.reduce((a, c) => { a[c.id] = c; return a; }, {} as People);
       return {...state, people };
     case 'addRandomPeople':
@@ -106,25 +105,30 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const person = Object.assign(state.people[action.person.id] || {}, action.person);
       return {...state, people: {...state.people, [action.person.id]: person }};
     case 'notify':
-      return applyNotification(state, action.content, action.key);
+      return applyNotification(state, action.content, action.at, action.key);
     case 'personBirthday':
       // not immutable, just set it.
       const p = action.person;
-      const updates = processBirthday(p, state.gameTime);
+      const updates = processBirthday(p, BLACKBOARD.processTime);
       const newP = Object.assign(p, updates);
       const notice = {type: 'birthday', person: newP.id, val: newP.age}; // <>Happy <Val val={newP.age}/>, {newP.avatar}{newP.name.given} {newP.name.family}!</>;
       return {
-        ...applyNotification(state, notice, 'birthday'),
+        ...applyNotification(state, notice, BLACKBOARD.processTime, 'birthday'),
         people: { ...state.people, [p.id]: newP },
       };
     case 'saveGame':
-      const compressed = LZipper.compress(CJSON.stringify(state));
+      const compressed = LZipper.compress(JSON.stringify(state));
+//	  const compressed = LZipper.compress(CJSON.stringify(state));
       localStorage.setItem('gameState', compressed);
       return applyNotification(state, `Game Saved (${bytesToSize(compressed.length)})`);
     case 'loadGame':
       const saved = localStorage.getItem('gameState');
       if (saved) {
-        return CJSON.parse(LZipper.decompress(saved));
+        const savedState = JSON.parse(LZipper.decompress(saved));
+//	    const savedState = CJSON.parse(LZipper.decompress(saved));
+      	clearBlackboard();
+      	BLACKBOARD.processLastTime = savedState.gameTime;
+        return savedState;
       }
       return state;
     default:
@@ -132,8 +136,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
-export const applyNotification = (state: GameState, content: string|GameEvent, key?: EmojiKey) =>
-  ({...state, notifications: [{content, type: key || 'gear', at: state.gameTime}, ...state.notifications].slice(0, 100)});
+export const applyNotification = (state: GameState, content: string|GameEvent, at?: number, key?: EmojiKey) =>
+  ({...state, notifications: [{content, type: key || 'gear', at: at || BLACKBOARD.processTime}, ...state.notifications].slice(0, 100)});
 
 function GameProvider({children}: GameProviderProps) {
   const [state, dispatch] = useReducer(gameReducer, createGameState());
@@ -162,8 +166,18 @@ function useGameDispatch(): GameDispatch {
   return context;
 }
 
-function useGame(): [GameState, GameDispatch] {
-  return [useGameState(), useGameDispatch()];
+const BLACKBOARD: GameBlackboard = {
+	_anchor: { very: "heavy" },
+};
+
+function useGameBlackboard(): GameBlackboard {
+	return BLACKBOARD;
 }
 
-export { GameProvider, useGameState, useGameDispatch, useGame };
+export const clearBlackboard = () => Object.keys(BLACKBOARD).forEach(k => k === '_anchor' ? null : delete BLACKBOARD[k]);
+
+function useGame(): [GameState, GameDispatch, GameBlackboard] {
+  return [useGameState(), useGameDispatch(), useGameBlackboard()];
+}
+
+export { GameProvider, useGameState, useGameDispatch, useGameBlackboard, useGame };
