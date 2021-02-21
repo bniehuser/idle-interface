@@ -26,7 +26,6 @@ const Game: FC<{ style: CSS.Properties }> = ({style}) => {
     }}
     style={style}
   >
-	  <pre>{bb.parseSave}</pre>
     <Map/>
   </GameEngine>;
 };

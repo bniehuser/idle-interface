@@ -12,31 +12,31 @@ export type GameAction =
   | { type: 'addRandomPeople', num: number }
   | { type: 'removePerson', personId: number }
   | { type: 'updatePerson', person: Partial<Person> }
-  | { type: 'notify', content: GameEvent|string, key?: EmojiKey, at?: number }
+  | { type: 'notify', content: GameEvent | string, key?: EmojiKey, at?: number }
   | { type: 'personBirthday', person: Person }
   | { type: 'setPeople', payload: Person[] }
   | { type: 'saveGame' }
   | { type: 'loadGame' }
-  | { type: '_test', data: { [k: string]: string|number } };
+  | { type: '_test', data: { [k: string]: string | number } };
 
-type People = {[id: number]: Person};
+type People = { [id: number]: Person };
 
 export interface GameEvent {
   type: string;
   person?: number;
-  val?: string|number;
+  val?: string | number;
 }
 
 export interface GameNotification {
   type?: EmojiKey;
-  content: GameEvent|string;
+  content: GameEvent | string;
   at: number;
 }
 
 export interface GameState {
   _test?: {
-    [k: string]: string|number,
-  },
+    [k: string]: string | number,
+  };
   realStart: number;
   gameTime: number;
   fastForward: number;
@@ -45,11 +45,12 @@ export interface GameState {
   people: People;
   notifications: GameNotification[];
 }
+
 export type GameDispatch = React.Dispatch<GameAction>;
 
 export type GameBlackboard = {
-	[k: string]: any,
-}
+  [k: string]: any,
+};
 
 // for use with react-game-engine
 export type Game = {
@@ -82,12 +83,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   let personId: number;
   switch (action.type) {
     case 'setClock':
-      return { ...state, gameTime: action.now };
+      return {...state, gameTime: action.now};
     case 'fastForward':
-      return { ...state, fastForward: action.speed };
+      return {...state, fastForward: action.speed};
     case 'setPeople':
-      const people = action.payload.reduce((a, c) => { a[c.id] = c; return a; }, {} as People);
-      return {...state, people };
+      const people = action.payload.reduce((a, c) => {
+        a[c.id] = c;
+        return a;
+      }, {} as People);
+      return {...state, people};
     case 'addRandomPeople':
       personId = state.personId;
       const newPeople: People = {};
@@ -95,15 +99,21 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         personId++;
         newPeople[personId] = createPerson(state.gameTime, personId);
       }
-      return { ...applyNotification(state, `Added ${action.num} people to game.`), personId, people: Object.assign(state.people, newPeople) };
+      return {
+        ...applyNotification(state, `Added ${action.num} people to game.`),
+        personId,
+        people: Object.assign(state.people, newPeople),
+      };
     case 'addRandomPerson':
       personId = state.personId;
       personId++;
       return {...state, personId, people: {...state.people, [personId]: createPerson(state.gameTime, personId)}};
     case 'updatePerson':
-      if (!action.person.id) { return state; }
+      if (!action.person.id) {
+        return state;
+      }
       const person = Object.assign(state.people[action.person.id] || {}, action.person);
-      return {...state, people: {...state.people, [action.person.id]: person }};
+      return {...state, people: {...state.people, [action.person.id]: person}};
     case 'notify':
       return applyNotification(state, action.content, action.at, action.key);
     case 'personBirthday':
@@ -114,20 +124,22 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const notice = {type: 'birthday', person: newP.id, val: newP.age}; // <>Happy <Val val={newP.age}/>, {newP.avatar}{newP.name.given} {newP.name.family}!</>;
       return {
         ...applyNotification(state, notice, BLACKBOARD.processTime, 'birthday'),
-        people: { ...state.people, [p.id]: newP },
+        people: {...state.people, [p.id]: newP},
       };
     case 'saveGame':
       const compressed = LZipper.compress(JSON.stringify(state));
-//	  const compressed = LZipper.compress(CJSON.stringify(state));
+// 	  const compressed = LZipper.compress(CJSON.stringify(state));
       localStorage.setItem('gameState', compressed);
       return applyNotification(state, `Game Saved (${bytesToSize(compressed.length)})`);
     case 'loadGame':
       const saved = localStorage.getItem('gameState');
       if (saved) {
         const savedState = JSON.parse(LZipper.decompress(saved));
-//	    const savedState = CJSON.parse(LZipper.decompress(saved));
-      	clearBlackboard();
-      	BLACKBOARD.processLastTime = savedState.gameTime;
+// 	    const savedState = CJSON.parse(LZipper.decompress(saved));
+        clearBlackboard();
+        BLACKBOARD.processLastTime = savedState.gameTime;
+        BLACKBOARD.processTime = savedState.gameTime;
+        BLACKBOARD.catchUpFrom = savedState.gameTime;
         return savedState;
       }
       return state;
@@ -136,8 +148,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
-export const applyNotification = (state: GameState, content: string|GameEvent, at?: number, key?: EmojiKey) =>
-  ({...state, notifications: [{content, type: key || 'gear', at: at || BLACKBOARD.processTime}, ...state.notifications].slice(0, 100)});
+export const applyNotification = (state: GameState, content: string | GameEvent, at?: number, key?: EmojiKey) =>
+  ({
+    ...state,
+    notifications: [{
+      content,
+      type: key || 'gear',
+      at: at || BLACKBOARD.processTime,
+    }, ...state.notifications].slice(0, 100),
+  });
 
 function GameProvider({children}: GameProviderProps) {
   const [state, dispatch] = useReducer(gameReducer, createGameState());
@@ -167,11 +186,11 @@ function useGameDispatch(): GameDispatch {
 }
 
 const BLACKBOARD: GameBlackboard = {
-	_anchor: { very: "heavy" },
+  _anchor: {very: 'heavy'},
 };
 
 function useGameBlackboard(): GameBlackboard {
-	return BLACKBOARD;
+  return BLACKBOARD;
 }
 
 export const clearBlackboard = () => Object.keys(BLACKBOARD).forEach(k => k === '_anchor' ? null : delete BLACKBOARD[k]);

@@ -117,13 +117,17 @@ $if-light: fade_out(darken($main-font, 30%), .5);
   overflow: visible;
   &.feature {
     margin: 2em;
+    box-sizing: content-box;
   }
   .progress-min-label {
     font-size:80%;
+    margin:0;
+    padding:0;
     &.feature {
       position: absolute;
-      top: -1em;
+      top: .65em;
       left: 0;
+      padding-left:2em;
       transform:translateX(-50%);
     }
   }
@@ -133,23 +137,29 @@ $if-light: fade_out(darken($main-font, 30%), .5);
     background: $main-green;
     margin:-1px;
     border: 1px solid $main-font;
+    position: relative;
     .progress-current-label {
       font-size:80%;
+      margin:0;
+      padding:0;
       &.feature {
         position: absolute;
-        bottom: -1em;
+        bottom: -2em;
         right: 0;
-        transform:translateX(-50%);
+        transform:translateX(50%);
       }
     }
   }
   .progress-max-label {
     font-size:80%;
+    margin:0;
+    padding:0;
     &.feature {
       position: absolute;
-      top: -1em;
+      top: .65em;
       right: 0;
-      transform:translateX(-50%);
+      padding-right:2em;
+      transform:translateX(50%);
     }
   }
 }

@@ -10,11 +10,11 @@ const FastForwardProgress: FC = () => {
   return <div style={{display: 'flex', flexFlow: 'column', alignItems: 'center', justifyContent: 'center', width: '33%', minWidth: '300px', height: '250px'}}>
     <h3 style={{textAlign: 'center'}}>Catching up time...</h3>
     <Progress
-      min={blackboard.processLastTime}
+      min={blackboard.catchUpFrom}
       max={game.gameTime}
       current={blackboard.processTime}
-      minLabel={moment(blackboard.processLastTime).format('MM/DD/yy hh:mm a')}
-      maxLabel={moment(game.gameTime).format('MM/DD hh:mm a')}
+      minLabel={moment(blackboard.catchUpFrom).format('MM/DD/yy hh:mm a')}
+      maxLabel={moment(game.gameTime).format('MM/DD/yy hh:mm a')}
       currentLabel={legibleTimeDiff(game.gameTime - blackboard.processTime)}
       type={'feature'}
       color={''} // to override default for feature default
