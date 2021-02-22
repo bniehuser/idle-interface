@@ -1,13 +1,14 @@
 @import "common";
 
 .clock {
-  float:right;
+  position:absolute;
+  z-index: 2;
   margin:0;
   top:.25rem;
   right:.25rem;
   padding:.25rem;
   font-size:120%;
   font-variation-settings: 'wght' 400;
-  color:darken($main-font, 15%);
-  background-color: fade_out($main-background,.5);
+  color:darken($main-font, 5%);
+  background-color: fade_out($main-background,.4);
 }

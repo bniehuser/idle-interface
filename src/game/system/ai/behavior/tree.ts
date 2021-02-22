@@ -2,6 +2,7 @@ import { Game } from '../../../../context/game';
 import { Person } from '../../../entity/person';
 import { MapPoint } from '../../../entity/map';
 import { randArrayItem } from '../../../../util/data-access';
+import { EmojiKey } from '../../../../util/emoji';
 
 // let's simplify things greatly
 type TNode = (p: Person, g: Game) => boolean;
@@ -19,6 +20,7 @@ export const RandomChance = (chance: number): TNode => () => Math.random() < cha
 // Leaf
 const IsOld: TNode = (p) => p.age > 80;
 const IsIdle: TNode = (p) => p.ai.decision === 'idle';
+const IsBusy: TNode = (p) => p.ai.decision === 'busy';
 
 // shards
 export const KillPerson = (reason: string): TNode => (p, g) => {
@@ -81,6 +83,11 @@ const Communicate: TNode = (p, g) => {
   return true;
 };
 
+const Notify = (content: string, key?: EmojiKey): TNode => (_, g) => {
+  g.dispatch({type: 'notify', key, content});
+  return true;
+};
+
 const Interact: TNode = Sequence(
   FindPeople,
   RandomChance(.01),
@@ -89,14 +96,50 @@ const Interact: TNode = Sequence(
 );
 const Hobby: TNode = () => false;
 const Nap: TNode = () => false;
+const SayHey: TNode = Sequence(
+  RandomChance(.0004),
+  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} says 'hey'!`, 'speech')(p, g),
+);
+const Daydream: TNode = Sequence(
+  RandomChance(.0001),
+  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} is daydreaming...`, 'thought')(p, g),
+);
+const GetAngry: TNode = Sequence(
+  RandomChance(.0001),
+  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} is VERY ANGRY`, 'yell')(p, g),
+);
+const FindMoney: TNode = Sequence(
+  RandomChance(.000004),
+  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} found $100 on the ground!`, 'money')(p, g),
+);
 
 const IdleActions: TNode = Selector(Interact, Hobby, Nap, ShouldDie); // do the first one that works
+const AlwaysActions: TNode = Selector(SayHey, Daydream, GetAngry);
 
 // const Running: TNode = (p) => { console.log('running behavior tree for', p.id); return true; };
 
 // main
-export const MainTree: TNode = Sequence(
+export const HourlyTree: TNode = Selector(
   // Running,
-  IsIdle,
-  IdleActions,
+  Sequence(IsIdle, IdleActions),
+  AlwaysActions,
+);
+
+const bbPerson = (p: Person, g: Game) => {
+  return g.blackboard.people[p.id];
+};
+
+const IsMoving: TNode = () => false;
+const DoMovement: TNode = () => false;
+const IsInteracting: TNode = (p, g) => !!bbPerson(p, g)?.target;
+const DoInteraction: TNode = () => false;
+
+const DoBusyWork: TNode = Selector(
+  Sequence(IsMoving, DoMovement),
+  Sequence(IsInteracting, DoInteraction),
+);
+
+export const MomentaryTree: TNode = Selector(
+  Sequence(IsBusy, DoBusyWork),
+  FindMoney,
 );
