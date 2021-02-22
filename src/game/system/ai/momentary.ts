@@ -1,5 +1,5 @@
 import { Game } from '../../../context/game';
-import { MomentaryTree } from './behavior/tree';
+import { MomentaryTree } from './behavior';
 
 export const runMomentary = (game: Game): Game => {
   game.dispatch({type: 'setClock', now: game.blackboard.now});

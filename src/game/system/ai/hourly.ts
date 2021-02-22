@@ -1,5 +1,5 @@
 import { Game } from '../../../context/game';
-import { HourlyTree } from './behavior/tree';
+import { HourlyTree } from './behavior';
 
 export const runHourly = (game: Game): Game => {
   Object.values(game.state.living).forEach(id => {

@@ -89,7 +89,7 @@ const initSpriteBuffer = () => {
 };
 
 const Map: FC = () => {
-  const [s, gameDispatch] = useGame();
+  const [s, gameDispatch, bb] = useGame();
   const ref = useRef<HTMLDivElement>(null);
   const [d, setD] = useState({w: 0, h: 0});
   useEffect(() => {
@@ -149,7 +149,7 @@ const Map: FC = () => {
         ctx.clearRect(0, 0, spriteCanvas.width, spriteCanvas.height);
         Object.values(s.people).forEach(p => {
           if (p.location.x < Math.floor(d.w / 32) && p.location.y < Math.floor(d.h / 32)) {
-            drawAvatar(ctx, p.location.x * 32, p.location.y * 32, p.avatar, Math.random() < .1 ? htmlEmoji('speech') : undefined);
+            drawAvatar(ctx, p.location.x * 32, p.location.y * 32, p.avatar, bb.people[p.id]?.interacting ? htmlEmoji('speech') : undefined);
           }
         });
       }
