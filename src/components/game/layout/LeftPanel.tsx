@@ -16,18 +16,11 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
   return <Panel style={style}>
     <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
       <div>
-        <div className='money'>money</div>
-        <div className='offense'>offense</div>
-        <div className='defense'>defense</div>
-        <div className='war'>war</div>
-        <div className='baby'>baby</div>
-        <div className='sun'>sun</div>
-        <div className='moon'>moon</div>
+        <EmojiNote type={'beating-heart'}>Living: {game.living.length}</EmojiNote>
+        <EmojiNote type={'coffin'}>Dead: {game.dead.length}</EmojiNote>
         <Tooltip tip={'some tip content here'}><div className={'flash'}><StarIcon style={{fill: '#FFFF66', strokeWidth: '.01rem', stroke: '#000'}}/> star</div></Tooltip>
         <div><HeartIcon style={{fill: '#FF9999', strokeWidth: '.01rem', stroke: '#000'}}/> heart</div>
-        <EmojiNote type={'moon'}>Icon</EmojiNote>
-        <EmojiNote type={['moon', 'sun', 'baby', 'war']} alt={[undefined, undefined, 'light']}>Icon</EmojiNote>
-        <br/><br/>
+        <br/>
         <EmojiNote type='money'><Val val={-221}/> from opportunity</EmojiNote>
         <br/>
         <button onClick={() => dispatch({type: 'notify', content: 'padding notes go here', key: 'gear'})}>Add Note</button>
@@ -36,8 +29,8 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
         <br/>
       </div>
       <h3>Notifications:</h3>
-		{game.fastForward ? <div>Loading...</div> : <div className={'scrollable'} style={{flex: 1}}>
-        {game.notifications?.map((n, i) => <Notification key={`n_${i}`} n={n} p={typeof n.content !== 'string' ? (n.content.person ? game.people[n.content.person] : undefined) : undefined}/>)}
+      {game.fastForward ? <div>Loading...</div> : <div className={'scrollable'} style={{flex: 1}}>
+      {game.notifications?.map((n, i) => <Notification key={`n_${i}`} n={n} p={typeof n.content !== 'string' ? (n.content.person ? game.people[n.content.person] : undefined) : undefined}/>)}
       </div>}
     </div>
   </Panel>;

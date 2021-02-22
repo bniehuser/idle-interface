@@ -7,6 +7,7 @@ import surNames from '../../data/names/names-surnames.json';
 import moment from 'moment';
 import { randArrayItem } from '../../util/data-access';
 import { EmojiKey, htmlEmoji } from '../../util/emoji';
+import { MapPoint } from './map';
 
 export interface Person {
   id: number;
@@ -23,6 +24,7 @@ export interface Person {
   schedule: Schedule;
   mood: Mood;
   relationships: Array<Relationship>;
+  location: MapPoint;
 }
 
 export interface Mood {
@@ -109,10 +111,11 @@ export const createPerson = (now: number, id: number, birthday?: number, gender?
     gender: useGender,
     avatar: calcAvatar(useGender, useSkin, useAge),
     age: useAge,
-    ai: { decision: '' },
+    ai: { decision: Math.random() < .2 ? 'idle' : 'busy' },
     mood: { happiness: 0 },
     relationships: [],
     schedule: {obligations: []},
+    location: {x: Math.floor(Math.random() * 100), y: Math.floor(Math.random() * 100)},
   };
   if (parent1) {
     child.relationships.push({source: child.id, subject: parent1.id, love: 1, respect: 1, camaraderie: 0, rivalry: 0});

@@ -29,6 +29,7 @@ const processAI = async (game: Game): Promise<void> => {
         processTime = b.processLastTime + speed;
       } else {
         processTime = b.now;
+        speed = 0;
       }
 
       const m = moment(processTime);
@@ -42,6 +43,7 @@ const processAI = async (game: Game): Promise<void> => {
 
       b.processLastTime = b.processTime;
       b.processTime = processTime;
+      b.speed = speed;
 
       if (CURRENT_MINUTE !== LAST_MINUTE) {
         runMomentary(game);

@@ -20,6 +20,17 @@ export const emojis = {
     'speech': 0x1F4AC,
     'thought': 0x1F4AD,
     'yell': 0x1F5EF,
+    'coffin': 0x26B0,
+    'skull': 0x1F480,
+    'crossbones': 0x2620,
+    'drumstick': 0x1F357,
+    'meat': 0x1F969,
+    'cow': 0x1F404,
+    'pig': 0x1F416,
+    'sheep': 0x1F411,
+    'horse': 0x1F40E,
+    'horse-head': 0x1F434,
+    'beating-heart': 0x1F493,
 };
 export type EmojiKey = keyof typeof emojis;
 export const emojiVariants = {
@@ -33,7 +44,7 @@ export const emojiVariants = {
 export type EmojiVariant = keyof typeof emojiVariants;
 
 const defaultVariant = (emoji: EmojiKey) => {
-    if (['offense', 'defense', 'war', 'gear', 'yell'].some(i => i === emoji)) { return 'default'; }
+    if (['offense', 'defense', 'war', 'gear', 'yell', 'coffin', 'crossbones'].some(i => i === emoji)) { return 'default'; }
     return undefined;
 };
 

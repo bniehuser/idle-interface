@@ -12,6 +12,7 @@ export type GameAction =
   | { type: 'addRandomPeople', num: number }
   | { type: 'removePerson', personId: number }
   | { type: 'updatePerson', person: Partial<Person> }
+  | { type: 'killPerson', personId: number, reason: string }
   | { type: 'notify', content: GameEvent | string, key?: EmojiKey, at?: number }
   | { type: 'personBirthday', person: Person }
   | { type: 'setPeople', payload: Person[] }
@@ -43,6 +44,8 @@ export interface GameState {
   personId: number;
   placeId: number;
   people: People;
+  living: number[];
+  dead: number[];
   notifications: GameNotification[];
 }
 
@@ -70,6 +73,8 @@ const createGameState = (): GameState => {
     personId: 0,
     placeId: 0,
     people: [],
+    living: [],
+    dead: [],
     notifications: [],
   };
 };
@@ -87,33 +92,50 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'fastForward':
       return {...state, fastForward: action.speed};
     case 'setPeople':
+      const peopleIds: number[] = [];
       const people = action.payload.reduce((a, c) => {
         a[c.id] = c;
+        peopleIds.push(c.id);
         return a;
       }, {} as People);
-      return {...state, people};
+      return {...state, people, living: peopleIds, dead: []};
     case 'addRandomPeople':
       personId = state.personId;
+      const newPeopleIds: number[] = [];
       const newPeople: People = {};
       for (let i = 0; i < action.num; i++) {
         personId++;
         newPeople[personId] = createPerson(state.gameTime, personId);
+        newPeopleIds.push(personId);
       }
       return {
         ...applyNotification(state, `Added ${action.num} people to game.`),
         personId,
         people: Object.assign(state.people, newPeople),
+        living: [...state.living, ...newPeopleIds],
       };
     case 'addRandomPerson':
       personId = state.personId;
       personId++;
-      return {...state, personId, people: {...state.people, [personId]: createPerson(state.gameTime, personId)}};
+      return {
+        ...state,
+        personId,
+        people: {...state.people, [personId]: createPerson(state.gameTime, personId)},
+        living: [...state.living, personId],
+      };
     case 'updatePerson':
       if (!action.person.id) {
         return state;
       }
       const person = Object.assign(state.people[action.person.id] || {}, action.person);
       return {...state, people: {...state.people, [action.person.id]: person}};
+    case 'killPerson':
+      const dead = state.people[action.personId];
+      return applyNotification({
+        ...state,
+        living: state.living.filter(id => id !== action.personId),
+        dead: [...state.dead, action.personId],
+      }, `${dead.avatar}${dead.name.given} ${dead.name.family} ${action.reason}`, undefined, 'coffin');
     case 'notify':
       return applyNotification(state, action.content, action.at, action.key);
     case 'personBirthday':
@@ -187,13 +209,17 @@ function useGameDispatch(): GameDispatch {
 
 const BLACKBOARD: GameBlackboard = {
   _anchor: {very: 'heavy'},
+  people: {},
 };
 
 function useGameBlackboard(): GameBlackboard {
   return BLACKBOARD;
 }
 
-export const clearBlackboard = () => Object.keys(BLACKBOARD).forEach(k => k === '_anchor' ? null : delete BLACKBOARD[k]);
+export const clearBlackboard = () => {
+  Object.keys(BLACKBOARD).forEach(k => k === '_anchor' ? null : delete BLACKBOARD[k]);
+  BLACKBOARD.people = {};
+};
 
 function useGame(): [GameState, GameDispatch, GameBlackboard] {
   return [useGameState(), useGameDispatch(), useGameBlackboard()];
