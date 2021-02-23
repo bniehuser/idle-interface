@@ -29,9 +29,11 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
         <br/>
       </div>
       <h3>Notifications:</h3>
+      <div style={{position: 'relative'}}>
       {game.fastForward ? <div>Loading...</div> : <div className={'scrollable'} style={{flex: 1}}>
       {game.notifications?.map((n, i) => <Notification key={`n_${i}`} n={n} p={typeof n.content !== 'string' ? (n.content.person ? game.people[n.content.person] : undefined) : undefined}/>)}
       </div>}
+      </div>
     </div>
   </Panel>;
 };

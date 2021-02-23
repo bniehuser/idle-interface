@@ -29,20 +29,20 @@ export const Birthday: TNode = (p, g) => {
 
 export const SayHey: TNode = Sequence(
   RandomChance(.0004),
-  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} says 'hey'!`, 'speech')(p, g),
+  (p, g) => Notify(`P{${p.id}} says 'hey'!`, 'speech')(p, g),
 );
 
 export const Daydream: TNode = Sequence(
   RandomChance(.0001),
-  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} is daydreaming...`, 'thought')(p, g),
+  (p, g) => Notify(`P{${p.id}} is daydreaming...`, 'thought')(p, g),
 );
 
 export const GetAngry: TNode = Sequence(
   RandomChance(.0001),
-  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} is VERY ANGRY`, 'yell')(p, g),
+  (p, g) => Notify(`P{${p.id}} is VERY ANGRY`, 'yell')(p, g),
 );
 
 export const FindMoney: TNode = Sequence(
   RandomChance(.000004),
-  (p, g) => Notify(`${p.avatar}${p.name.given} ${p.name.family} found $100 on the ground!`, 'money')(p, g),
+  (p, g) => Notify(`P{${p.id}} found $100 on the ground!`, 'money')(p, g),
 );

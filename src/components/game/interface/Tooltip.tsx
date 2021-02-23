@@ -4,6 +4,7 @@ import TooltipContent from './TooltipContent';
 type TTProps = {
   children?: ReactNode;
   tip: ReactNode;
+  noFormat?: boolean;
 };
 type TipParams = {
   show: boolean;
@@ -11,7 +12,7 @@ type TipParams = {
   v?: 'top'|'middle'|'bottom';
 };
 
-const Tooltip: FC<TTProps> = ({tip, children}) => {
+const Tooltip: FC<TTProps> = ({tip, children, noFormat}) => {
   const [tipData, setTip] = useState<TipParams>({show: false});
 
   const mouseOver = useCallback((e: MouseEvent) => {
@@ -22,7 +23,7 @@ const Tooltip: FC<TTProps> = ({tip, children}) => {
 
   return <span className={'tooltipContainer'} onMouseOver={mouseOver} onMouseOut={() => setTip({show: false})}>
     {children}
-    {tipData.show && <TooltipContent h={tipData.h} v={tipData.v}>{tip}</TooltipContent>}
+    {tipData.show && <TooltipContent noFormat={noFormat} h={tipData.h} v={tipData.v}>{tip}</TooltipContent>}
   </span>;
 };
 export default memo(Tooltip);

@@ -135,7 +135,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         living: state.living.filter(id => id !== action.personId),
         dead: [...state.dead, action.personId],
-      }, `${dead.avatar}${dead.name.given} ${dead.name.family} ${action.reason}`, undefined, 'coffin');
+      }, `P{${dead.id}} ${action.reason}`, undefined, 'coffin');
     case 'notify':
       return applyNotification(state, action.content, action.at, action.key);
     case 'personBirthday':

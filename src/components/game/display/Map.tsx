@@ -3,6 +3,8 @@ import { Display, Map as RotMap } from 'rot-js';
 import TileSet from '../../../../public/img/TileSet.png';
 import { useGame } from '../../../context/game';
 import { htmlEmoji } from '../../../util/emoji';
+import { Person } from '../../../game/entity/person';
+import PersonCard from '../interface/PersonCard';
 
 const bigIcons = [
   htmlEmoji('baby', 'light'),
@@ -92,6 +94,8 @@ const Map: FC = () => {
   const [s, gameDispatch, bb] = useGame();
   const ref = useRef<HTMLDivElement>(null);
   const [d, setD] = useState({w: 0, h: 0});
+  const [hoverData, setHoverData] = useState<{ person: Person, stateData?: any }|undefined>(undefined);
+  const [mousePos, setMousePos] = useState<[number, number]>([0, 0]);
   useEffect(() => {
     const tileSet = document.createElement('img');
     tileSet.src = TileSet;
@@ -156,9 +160,22 @@ const Map: FC = () => {
     }, 100);
   }, [s, d]);
 
+  const doHoverId = (id: number): boolean => { setHoverData({ person: s.people[id], stateData: bb.people[id] }); return true; };
+  const onMouseMove = (e: React.MouseEvent) => {
+    setMousePos([e.clientX, e.clientY]);
+    const rect = (document.getElementById('sprite-canvas') as HTMLCanvasElement).getBoundingClientRect();
+    const posX = Math.floor((e.clientX - rect.left) / 32);
+    const posY = Math.floor((e.clientY - rect.top) / 32);
+    setMousePos([e.clientX - rect.left, e.clientY - rect.top]);
+    if (!s.living.some(id => (s.people[id].location.x === posX && s.people[id].location.y === posY) ? doHoverId(id) : false)) {
+      setHoverData(undefined);
+    }
+  };
+
   return <div style={{position: 'relative', flexGrow: 1, width: '100%', height: '100%'}}>
     <div ref={ref}/>
-    <canvas id={'sprite-canvas'} width={d?.w} height={d?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%'}} />
+    <canvas onMouseMove={onMouseMove} id={'sprite-canvas'} width={d?.w} height={d?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%'}} />
+    {hoverData?.person ? <div style={{position: 'absolute', zIndex: 3, left: mousePos[0] + 'px', top: mousePos[1] + 'px'}}><PersonCard {...hoverData}/></div> : null}
   </div>;
 };
 
