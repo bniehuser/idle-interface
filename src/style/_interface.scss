@@ -1,5 +1,9 @@
 @import "common";
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Libre Franklin', sans-serif;
+}
+
 .container {
   background-color: fade_out($main-background, .3);
   position:relative;
@@ -162,4 +166,8 @@ $if-light: fade_out(darken($main-font, 30%), .5);
       transform:translateX(50%);
     }
   }
+}
+
+.thin {
+  font-variation-settings: 'wght' 200;
 }

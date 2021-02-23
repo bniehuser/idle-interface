@@ -5,6 +5,7 @@ import { useGame } from '../../../context/game';
 import { htmlEmoji } from '../../../util/emoji';
 import { Person } from '../../../game/entity/person';
 import PersonCard from '../interface/PersonCard';
+import { OS } from '../../../util/platform';
 
 const bigIcons = [
   htmlEmoji('baby', 'light'),
@@ -77,13 +78,17 @@ const spriteBufferCanvas = document.createElement('canvas');
 spriteBufferCanvas.height = 48;
 spriteBufferCanvas.width = Math.max(bigIcons.length * 32, smallIcons.length * 16);
 
+
 const initSpriteBuffer = () => {
   const ctx = spriteBufferCanvas.getContext('2d');
   if (ctx) {
     Object.keys(spriteInfo).forEach(k => {
       const s = spriteInfo[k];
-      ctx.font = (s.h === 16 ? 14 : s.h) + 'px sans-serif';
-      ctx.fillText(k, s.x, s.y + s.h - 1); // fonts are baseline, so print at bottom
+      // TODO: extrapolate a set of emoji characteristics by OS in the emoji util
+	  const emojiHeight = OS === 'Windows' ? 25 : 32;
+      const h = (s.h === 16 ? 14 : emojiHeight);
+      ctx.font = h + 'px sans-serif';
+      ctx.fillText(k, s.x, s.y + h - 1); // fonts are baseline, so print at bottom
     });
   } else {
     console.error('NO SPRITE CANVAS CONTEXT');
@@ -175,7 +180,7 @@ const Map: FC = () => {
   return <div style={{position: 'relative', flexGrow: 1, width: '100%', height: '100%'}}>
     <div ref={ref}/>
     <canvas onMouseMove={onMouseMove} id={'sprite-canvas'} width={d?.w} height={d?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%'}} />
-    {hoverData?.person ? <div style={{position: 'absolute', zIndex: 3, left: mousePos[0] + 'px', top: mousePos[1] + 'px'}}><PersonCard {...hoverData}/></div> : null}
+    {hoverData?.person ? <div style={{transform: `translate(${(mousePos[0] < (d.w/2)) ? 0 : -105}%, ${(mousePos[1] < (d.h/2)) ? 0 : -100}%)`, position: 'absolute', zIndex: 3, left: (mousePos[0]+5) + 'px', top: (mousePos[1]+5) + 'px'}}><PersonCard {...hoverData}/></div> : null}
   </div>;
 };
 
