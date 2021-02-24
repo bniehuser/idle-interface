@@ -3,6 +3,7 @@ import { IsBusy } from './person';
 import { FindMoney } from './life';
 import { MINUTE } from '../../../../util/const/time';
 import { FinishInteraction, IsInteracting } from './interact';
+import { DoDeferred } from './defer';
 
 const IsMoving: TNode = () => false;
 const DoMovement: TNode = () => false;
@@ -28,5 +29,6 @@ const HandleInteraction: TNode = Sequence(
 export const MomentaryTree: TNode = Selector(
   Sequence(IsBusy, DoBusyWork),
   HandleInteraction,
+  DoDeferred,
   FindMoney,
 );

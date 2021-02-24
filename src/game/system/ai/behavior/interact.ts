@@ -2,7 +2,8 @@ import { RandomChance, Sequence, TNode } from './tree';
 import { randArrayItem } from '../../../../util/data-access';
 import { distance } from '../../../entity/map';
 import { bbPerson } from './util/blackboard';
-import { legibleTimeDiff } from '../../../../util/const/time';
+import { HOUR, legibleTimeDiff } from '../../../../util/const/time';
+import { Defer } from './defer';
 
 export const FIND_PEOPLE_DISTANCE = 10;
 
@@ -76,9 +77,14 @@ export const Communicate: TNode = (p, g) => {
   return true;
 };
 
-export const Interact: TNode = Sequence(
+const MakeInteraction = Sequence(
   FindPeople,
-  RandomChance(.01),
   TargetForInteraction,
   BeginInteraction,
+);
+
+export const Interact: TNode = Sequence(
+  RandomChance(.01),
+  FindPeople,
+  Defer(MakeInteraction, () => Math.floor(Math.random() * HOUR)),
 );

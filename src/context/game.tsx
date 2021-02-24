@@ -3,11 +3,13 @@ import { createPerson, Person, processBirthday } from '../game/entity/person';
 import { EmojiKey } from '../util/emoji';
 import LZipper from '../util/data/LZipper';
 import { bytesToSize } from '../util/lang-format';
+import { Map } from '../game/entity/map';
 
 export type GameAction =
   { type: 'addClock', delta: number }
   | { type: 'setClock', now: number }
   | { type: 'fastForward', speed: number }
+  | { type: 'setMap', map: Map }
   | { type: 'addRandomPerson' }
   | { type: 'addRandomPeople', num: number }
   | { type: 'removePerson', personId: number }
@@ -46,6 +48,7 @@ export interface GameState {
   people: People;
   living: number[];
   dead: number[];
+  map?: Map;
   notifications: GameNotification[];
 }
 
@@ -136,6 +139,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         living: state.living.filter(id => id !== action.personId),
         dead: [...state.dead, action.personId],
       }, `P{${dead.id}} ${action.reason}`, undefined, 'coffin');
+    case 'setMap':
+      return {...state, map: action.map};
     case 'notify':
       return applyNotification(state, action.content, action.at, action.key);
     case 'personBirthday':

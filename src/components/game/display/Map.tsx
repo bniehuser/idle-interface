@@ -1,11 +1,11 @@
 import React, { FC, memo, useEffect, useRef, useState } from 'react';
-import { Display, Map as RotMap } from 'rot-js';
 import TileSet from '../../../../public/img/TileSet.png';
 import { useGame } from '../../../context/game';
 import { htmlEmoji } from '../../../util/emoji';
 import { Person } from '../../../game/entity/person';
 import PersonCard from '../interface/PersonCard';
 import { OS } from '../../../util/platform';
+import { createMap, MapDisplay, renderMap } from '../../../game/entity/map';
 
 const bigIcons = [
   htmlEmoji('baby', 'light'),
@@ -78,14 +78,13 @@ const spriteBufferCanvas = document.createElement('canvas');
 spriteBufferCanvas.height = 48;
 spriteBufferCanvas.width = Math.max(bigIcons.length * 32, smallIcons.length * 16);
 
-
 const initSpriteBuffer = () => {
   const ctx = spriteBufferCanvas.getContext('2d');
   if (ctx) {
     Object.keys(spriteInfo).forEach(k => {
       const s = spriteInfo[k];
       // TODO: extrapolate a set of emoji characteristics by OS in the emoji util
-	  const emojiHeight = OS === 'Windows' ? 25 : 32;
+      const emojiHeight = OS === 'Windows' ? 25 : 32;
       const h = (s.h === 16 ? 14 : emojiHeight);
       ctx.font = h + 'px sans-serif';
       ctx.fillText(k, s.x, s.y + h - 1); // fonts are baseline, so print at bottom
@@ -96,91 +95,156 @@ const initSpriteBuffer = () => {
 };
 
 const Map: FC = () => {
-  const [s, gameDispatch, bb] = useGame();
+  const [s, d, bb] = useGame();
   const ref = useRef<HTMLDivElement>(null);
-  const [d, setD] = useState({w: 0, h: 0});
+  const [cd, setD] = useState({w: 0, h: 0});
   const [hoverData, setHoverData] = useState<{ person: Person, stateData?: any }|undefined>(undefined);
   const [mousePos, setMousePos] = useState<[number, number]>([0, 0]);
+  const [mapDisplay, setMapDisplay] = useState<MapDisplay|undefined>(undefined);
+  const [mapOffset, setMapOffset] = useState<[number, number]>([0, 0]);
+  const [dragOffset, setDragOffset] = useState<[number, number]>([0, 0]);
+  const [clientMousePos, setClientMousePos] = useState<[number, number]>([0, 0]);
+  const [moving, setMoving] = useState<boolean>(false);
+
   useEffect(() => {
+    // we'll be killing this shortly
+    document.addEventListener('keydown', e => {
+      d({type: 'notify', content: `pressed the ${e.code} (${e.key}) key`});
+    });
+
+    mapCanvas = document.getElementById('map-canvas') as HTMLCanvasElement;
+    spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
+
+    // world's saddest asset loader
     const tileSet = document.createElement('img');
     tileSet.src = TileSet;
     tileSet.onload = () => {
-      const rotDisplay = new Display({
-        layout: 'tile',
-        bg: 'transparent',
-        tileSet,
-        tileMap: {
-          '@': [0, 0],
-          '#': [0, 32],
-          'a': [0, 128],
-          '!': [0, 160],
-        },
-        width: 40,
-        height: 32,
-      });
-      const displayContainer = rotDisplay.getContainer();
-      if (ref.current && displayContainer) {
-        ref.current.appendChild(displayContainer);
-      }
-
-      document.addEventListener('keydown', e => {
-        gameDispatch({type: 'notify', content: `pressed the ${e.code} (${e.key}) key`});
-      });
-
-      const digger = new RotMap.Digger(240, 240, {
-        roomHeight: [15, 25],
-        roomWidth: [15, 25],
-        dugPercentage: 85,
-        corridorLength: [1, 25],
-      });
-      digger.create((x, y, what) => {
-        rotDisplay.draw(x, y, ['@', '#', '!'][what], '', ['green', 'brown'][what]);
-      });
-      gameDispatch({type: 'notify', content: `finished building map: (${digger._width},${digger._height})`});
       initSpriteBuffer();
-      const spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
-      const newD = {w: spriteCanvas.offsetWidth, h: spriteCanvas.offsetHeight};
-      const resize = () => {
-        console.log('ran resize');
+      setTimeout(() => {
+        const newD = {w: spriteCanvas.offsetWidth, h: spriteCanvas.offsetHeight};
         setD(newD);
-        rotDisplay.setOptions({width: Math.floor(newD.w / 32), height: Math.floor(newD.h / 32)});
-      };
-      window.addEventListener('resize', resize);
-      resize();
-      console.log('how often are we running this anyway?');
+
+        const mapCtx = mapCanvas.getContext('2d');
+        if (mapCanvas && mapCtx && spriteCanvas) {
+          const map = createMap({});
+          d({type: 'setMap', map});
+          const newMap = {
+            map,
+            canvas: mapCanvas,
+            spriteCanvas: spriteCanvas,
+            spriteBuffer: spriteBufferCanvas,
+            ctx: mapCtx,
+            tileImg: tileSet,
+            spriteImg: spriteCanvas,
+          };
+          d({type: 'notify', content: `finished building map: (${map.width},${map.height})`});
+          setMapDisplay(newMap);
+          let localDragOffset: [number, number] = [0, 0];
+          let localMapOffset: [number, number] = [0, 0];
+          const mover = (e: MouseEvent) => {
+            const offsetX = localMapOffset[0] + (e.pageX - localDragOffset[0]);
+            const offsetY = localMapOffset[1] + (e.pageY - localDragOffset[1]);
+            // console.log(dragOffset);
+            setClientMousePos([e.pageX, e.pageY]);
+            // console.log('should render offset', offsetX, offsetY);
+            requestAnimationFrame(() => {
+              renderMap(newMap, offsetX, offsetY);
+              renderSprites(newMap, offsetX, offsetY);
+            });
+          };
+          spriteCanvas.addEventListener('drag', () => false);
+          spriteCanvas.addEventListener('dragstart', () => false);
+          spriteCanvas.addEventListener('dragend', () => false);
+          spriteCanvas.addEventListener('mousedown', (e: MouseEvent) => {
+            setMoving(true);
+            e.stopPropagation();
+            document.addEventListener('mousemove', mover);
+            localDragOffset = [e.pageX, e.pageY];
+            setDragOffset(localDragOffset);
+            // console.log('how many times do we run?', [e.pageX, e.pageY]);
+            return false;
+          });
+          spriteCanvas.addEventListener('mouseup', (e: MouseEvent) => {
+            setMoving(false);
+            document.removeEventListener('mousemove', mover);
+            localMapOffset = [localMapOffset[0] + (e.pageX - localDragOffset[0]), localMapOffset[1] + (e.pageY - localDragOffset[1])];
+            setMapOffset(localMapOffset);
+          });
+        } else {
+          throw new Error('something is horribly wrong, could not find map or sprite canvas');
+        }
+      }, 100);
     };
   }, []);
-  useEffect(() => {
-    setTimeout(() => {
-      const spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
-      const ctx = spriteCanvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, spriteCanvas.width, spriteCanvas.height);
-        Object.values(s.people).forEach(p => {
-          if (p.location.x < Math.floor(d.w / 32) && p.location.y < Math.floor(d.h / 32)) {
-            drawAvatar(ctx, p.location.x * 32, p.location.y * 32, p.avatar, bb.people[p.id]?.interacting ? htmlEmoji('speech') : undefined);
-          }
-        });
-      }
-    }, 100);
-  }, [s, d]);
 
   const doHoverId = (id: number): boolean => { setHoverData({ person: s.people[id], stateData: bb.people[id] }); return true; };
   const onMouseMove = (e: React.MouseEvent) => {
     setMousePos([e.clientX, e.clientY]);
-    const rect = (document.getElementById('sprite-canvas') as HTMLCanvasElement).getBoundingClientRect();
-    const posX = Math.floor((e.clientX - rect.left) / 32);
-    const posY = Math.floor((e.clientY - rect.top) / 32);
-    setMousePos([e.clientX - rect.left, e.clientY - rect.top]);
-    if (!s.living.some(id => (s.people[id].location.x === posX && s.people[id].location.y === posY) ? doHoverId(id) : false)) {
-      setHoverData(undefined);
+    if (!moving) {
+      const rect = (document.getElementById('sprite-canvas') as HTMLCanvasElement).getBoundingClientRect();
+      const posX = Math.floor((e.clientX - rect.left - mapOffset[0]) / 32);
+      const posY = Math.floor((e.clientY - rect.top - mapOffset[1]) / 32);
+      setMousePos([e.clientX - rect.left, e.clientY - rect.top]);
+      if (!s.living.some(id => (s.people[id].location.x === posX && s.people[id].location.y === posY) ? doHoverId(id) : false)) {
+        setHoverData(undefined);
+      }
     }
   };
 
+  let mapCanvas: HTMLCanvasElement;
+  let spriteCanvas: HTMLCanvasElement;
+
+  const renderSprites = (mapDisplay: MapDisplay, offsetX: number, offsetY: number) => {
+    const ctx = mapDisplay.spriteCanvas.getContext('2d');
+    const {width: w, height: h} = mapDisplay.spriteCanvas;
+    if (ctx) {
+      ctx.clearRect(0, 0, w, h);
+      Object.values(s.people).forEach(p => {
+        const [lx, bx, ly, by] = [
+          Math.floor(-offsetX / 32),
+          Math.ceil((w - offsetX) / 32),
+          Math.floor(-offsetY / 32),
+          Math.ceil((h - offsetY) / 32),
+        ];
+        const {x, y} = p.location;
+        if (x >= lx && x <= bx && y >= ly && y <= by) {
+          drawAvatar(ctx, x * 32 + offsetX, y * 32 + offsetY, p.avatar, bb.people[p.id]?.interacting ? htmlEmoji('speech') : undefined);
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (mapDisplay && !moving) {
+      renderMap(mapDisplay, mapOffset[0], mapOffset[1]);
+    }
+  }, [mapDisplay, mapOffset, s.map]);
+  useEffect(() => {
+    if (mapDisplay && !moving) {
+      renderSprites(mapDisplay, mapOffset[0], mapOffset[1]);
+    }
+  }, [mapDisplay, mapOffset, s]);
+
   return <div style={{position: 'relative', flexGrow: 1, width: '100%', height: '100%'}}>
     <div ref={ref}/>
-    <canvas onMouseMove={onMouseMove} id={'sprite-canvas'} width={d?.w} height={d?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%'}} />
-    {hoverData?.person ? <div style={{transform: `translate(${(mousePos[0] < (d.w/2)) ? 0 : -105}%, ${(mousePos[1] < (d.h/2)) ? 0 : -100}%)`, position: 'absolute', zIndex: 3, left: (mousePos[0]+5) + 'px', top: (mousePos[1]+5) + 'px'}}><PersonCard {...hoverData}/></div> : null}
+    <canvas id={'map-canvas'} width={cd?.w} height={cd?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 1}} />
+    <canvas onMouseMove={onMouseMove} id={'sprite-canvas'} width={cd?.w} height={cd?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 2}} />
+    <div style={{position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,.2)', padding: '.5rem', zIndex: 4}}>
+      map offset: {mapOffset[0]} / {mapOffset[1]}<br/>
+      drag offset: {dragOffset[0]} / {dragOffset[1]}<br/>
+      mouse pos: {clientMousePos[0]} / {clientMousePos[1]}
+    </div>
+    {hoverData?.person
+      ? <div style={{
+          transform: `translate(${(mousePos[0] < (cd.w / 2)) ? 0 : -105}%, ${(mousePos[1] < (cd.h / 2)) ? 0 : -100}%)`,
+          position: 'absolute',
+          zIndex: 3,
+          left: (mousePos[0] + 5) + 'px',
+          top: (mousePos[1] + 5) + 'px',
+        }}>
+          <PersonCard {...hoverData}/>
+        </div>
+      : null}
   </div>;
 };
 

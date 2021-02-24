@@ -12,7 +12,7 @@ const eventNotification = (content: string|GameEvent, p?: Person) => {
   if (typeof content === 'string') {
     return content
       .split(/P{([0-9]+)}/)
-      .map(c => c.match(/^[0-9]+$/) ? <PersonName id={parseInt(c, 10)}/> : c);
+      .map((c, i) => c.match(/^[0-9]+$/) ? <PersonName key={i} id={parseInt(c, 10)}/> : <span key={i}>{c}</span>);
   }
   switch (content.type) {
     case 'birthday':

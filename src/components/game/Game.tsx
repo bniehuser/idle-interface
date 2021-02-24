@@ -12,7 +12,7 @@ const Game: FC<{ style: CSS.Properties }> = ({style}) => {
     dispatch({type: 'addRandomPeople', num: 500});
     dispatch({type: 'notify', key: 'gear', content: 'Game Initialized.'});
   }, []);
-  return <GameEngine
+  return <GameEngine style={style}
     systems={[
       (game: GameObject) => ({...game, state}), // this need SERIOUS rethought
       GameTime,
@@ -24,7 +24,6 @@ const Game: FC<{ style: CSS.Properties }> = ({style}) => {
       blackboard: bb,
       clock: {renderer: <Clock/>},
     }}
-    style={style}
   >
     <Map/>
   </GameEngine>;
