@@ -136,29 +136,27 @@ export interface MapDisplay {
 export const renderMap = (mapDisplay: MapDisplay, pxOffsetX: number = 0, pxOffsetY: number = 0, width: number = 0, height: number = 0) => {
   const { map, canvas, ctx, tileImg } = mapDisplay;
   const { tileSize, width: mw, height: mh } = map;
-  const offsetX = Math.floor(-pxOffsetX / tileSize);
-  const offsetY = Math.floor(-pxOffsetY / tileSize);
   const getTile = makeTilePropsFinder(map);
-  const drawWidth = width || Math.ceil(canvas.width / tileSize);
-  const drawHeight = height || Math.ceil(canvas.height / tileSize);
+  const sx = Math.max(0, Math.floor(-pxOffsetX / tileSize));
+  const sy = Math.max(0, Math.floor(-pxOffsetY / tileSize));
+  const ex = Math.min(mw, width || Math.ceil((canvas.width - pxOffsetX) / tileSize));
+  const ey = Math.min(mh, height || Math.ceil((canvas.height - pxOffsetY) / tileSize));
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (let x = offsetX; x <= (offsetX + drawWidth); x++) {
-    for (let y = offsetY; y <= (offsetY + drawHeight); y++) {
-      if (x >= 0 && x < mw && y >= 0 && y < mh) {
-        const tile = getTile(x, y);
-        if (tile) {
-          ctx.drawImage(
-            tileImg,
-            tile.position[0],
-            tile.position[1],
-            tileSize,
-            tileSize,
-            (x) * tileSize + pxOffsetX,
-            (y) * tileSize + pxOffsetY,
-            tileSize,
-            tileSize,
-          );
-        }
+  for (let x = sx; x <= ex; x++) {
+    for (let y = sy; y <= ey; y++) {
+      const tile = getTile(x, y);
+      if (tile) {
+        ctx.drawImage(
+          tileImg,
+          tile.position[0],
+          tile.position[1],
+          tileSize,
+          tileSize,
+          x * tileSize + pxOffsetX,
+          y * tileSize + pxOffsetY,
+          tileSize,
+          tileSize,
+        );
       }
     }
   }
