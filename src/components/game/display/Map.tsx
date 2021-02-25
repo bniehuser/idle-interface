@@ -1,4 +1,4 @@
-import React, { FC, memo, useEffect, useRef, useState } from 'react';
+import React, { FC, memo, useCallback, useEffect, useRef, useState } from 'react';
 import TileSet from '../../../../public/img/TileSet.png';
 import { useGame } from '../../../context/game';
 import { htmlEmoji } from '../../../util/emoji';
@@ -105,6 +105,8 @@ const Map: FC = () => {
   const [dragOffset, setDragOffset] = useState<[number, number]>([0, 0]);
   const [clientMousePos, setClientMousePos] = useState<[number, number]>([0, 0]);
   const [moving, setMoving] = useState<boolean>(false);
+  const [tileLoaded, setTileLoaded] = useState<boolean>(false);
+  const [tileSet] = useState<HTMLImageElement>(document.createElement('img'));
 
   useEffect(() => {
     // we'll be killing this shortly
@@ -112,75 +114,65 @@ const Map: FC = () => {
       d({type: 'notify', content: `pressed the ${e.code} (${e.key}) key`});
     });
 
-    mapCanvas = document.getElementById('map-canvas') as HTMLCanvasElement;
-    spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
-
     // world's saddest asset loader
-    const tileSet = document.createElement('img');
     tileSet.src = TileSet;
     tileSet.onload = () => {
-      initSpriteBuffer();
-      setTimeout(() => {
-        const newD = {w: spriteCanvas.offsetWidth, h: spriteCanvas.offsetHeight};
-        setD(newD);
-
-        const mapCtx = mapCanvas.getContext('2d');
-        if (mapCanvas && mapCtx && spriteCanvas) {
-          const map = createMap({});
-          d({type: 'setMap', map});
-          const newMap = {
-            map,
-            canvas: mapCanvas,
-            spriteCanvas: spriteCanvas,
-            spriteBuffer: spriteBufferCanvas,
-            ctx: mapCtx,
-            tileImg: tileSet,
-            spriteImg: spriteCanvas,
-          };
-          d({type: 'notify', content: `finished building map: (${map.width},${map.height})`});
-          setMapDisplay(newMap);
-          let localDragOffset: [number, number] = [0, 0];
-          let localMapOffset: [number, number] = [0, 0];
-          const mover = (e: MouseEvent) => {
-            const offsetX = localMapOffset[0] + (e.pageX - localDragOffset[0]);
-            const offsetY = localMapOffset[1] + (e.pageY - localDragOffset[1]);
-            // console.log(dragOffset);
-            setClientMousePos([e.pageX, e.pageY]);
-            // console.log('should render offset', offsetX, offsetY);
-            requestAnimationFrame(() => {
-              renderMap(newMap, offsetX, offsetY);
-              renderSprites(newMap, offsetX, offsetY);
-            });
-          };
-          spriteCanvas.addEventListener('drag', () => false);
-          spriteCanvas.addEventListener('dragstart', () => false);
-          spriteCanvas.addEventListener('dragend', () => false);
-          spriteCanvas.addEventListener('mousedown', (e: MouseEvent) => {
-            setMoving(true);
-            e.stopPropagation();
-            document.addEventListener('mousemove', mover);
-            localDragOffset = [e.pageX, e.pageY];
-            setDragOffset(localDragOffset);
-            // console.log('how many times do we run?', [e.pageX, e.pageY]);
-            return false;
-          });
-          spriteCanvas.addEventListener('mouseup', (e: MouseEvent) => {
-            setMoving(false);
-            document.removeEventListener('mousemove', mover);
-            localMapOffset = [localMapOffset[0] + (e.pageX - localDragOffset[0]), localMapOffset[1] + (e.pageY - localDragOffset[1])];
-            setMapOffset(localMapOffset);
-          });
-        } else {
-          throw new Error('something is horribly wrong, could not find map or sprite canvas');
-        }
-      }, 100);
+      setTileLoaded(true);
     };
+    initSpriteBuffer();
   }, []);
 
+  useEffect(() => {
+    if (tileLoaded) {
+      mapCanvas = document.getElementById('map-canvas') as HTMLCanvasElement;
+      spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
+
+      const newD = {w: spriteCanvas.offsetWidth, h: spriteCanvas.offsetHeight};
+      setD(newD);
+
+      const mapCtx = mapCanvas.getContext('2d', {alpha: false});
+      if (mapCanvas && mapCtx && spriteCanvas) {
+        const map = s.map || createMap({});
+        d({type: 'setMap', map});
+        setMapDisplay({
+          map,
+          canvas: mapCanvas,
+          spriteCanvas: spriteCanvas,
+          spriteBuffer: spriteBufferCanvas,
+          ctx: mapCtx,
+          tileImg: tileSet,
+          spriteImg: spriteCanvas,
+        });
+        d({type: 'notify', content: `finished building map: (${map.width},${map.height})`});
+      } else {
+        throw new Error('something is horribly wrong, could not find map or sprite canvas');
+      }
+    }
+  }, [tileLoaded]);
+
   const doHoverId = (id: number): boolean => { setHoverData({ person: s.people[id], stateData: bb.people[id] }); return true; };
-  const onMouseMove = (e: React.MouseEvent) => {
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDragOffset([e.pageX, e.pageY]);
+    setMoving(true);
+    // console.log('how many times do we run?', [e.pageX, e.pageY]);
+    return false;
+  }, []);
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
     setMousePos([e.clientX, e.clientY]);
-    if (!moving) {
+    if (moving) {
+      const offsetX = mapOffset[0] + (e.pageX - dragOffset[0]);
+      const offsetY = mapOffset[1] + (e.pageY - dragOffset[1]);
+      // console.log(dragOffset);
+      setClientMousePos([e.pageX, e.pageY]);
+      // console.log('should render offset', offsetX, offsetY);
+      if (mapDisplay) {
+        requestAnimationFrame(() => {
+          renderMap(mapDisplay, offsetX, offsetY);
+          renderSprites(mapDisplay, offsetX, offsetY);
+        });
+      }
+    } else {
       const rect = (document.getElementById('sprite-canvas') as HTMLCanvasElement).getBoundingClientRect();
       const posX = Math.floor((e.clientX - rect.left - mapOffset[0]) / 32);
       const posY = Math.floor((e.clientY - rect.top - mapOffset[1]) / 32);
@@ -189,12 +181,17 @@ const Map: FC = () => {
         setHoverData(undefined);
       }
     }
-  };
+  }, [mapOffset, dragOffset]);
+  const onMouseUp = useCallback((e: React.MouseEvent) => {
+    setMoving(false);
+    setMapOffset([mapOffset[0] + (e.pageX - dragOffset[0]), mapOffset[1] + (e.pageY - dragOffset[1])]);
+  }, [dragOffset]);
 
   let mapCanvas: HTMLCanvasElement;
   let spriteCanvas: HTMLCanvasElement;
 
   const renderSprites = (mapDisplay: MapDisplay, offsetX: number, offsetY: number) => {
+    // bconsole.log('s.gameTime', s.gameTime);
     const ctx = mapDisplay.spriteCanvas.getContext('2d');
     const {width: w, height: h} = mapDisplay.spriteCanvas;
     if (ctx) {
@@ -228,7 +225,7 @@ const Map: FC = () => {
   return <div style={{position: 'relative', flexGrow: 1, width: '100%', height: '100%'}}>
     <div ref={ref}/>
     <canvas id={'map-canvas'} width={cd?.w} height={cd?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 1}} />
-    <canvas onMouseMove={onMouseMove} id={'sprite-canvas'} width={cd?.w} height={cd?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 2}} />
+    <canvas onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove} id={'sprite-canvas'} width={cd?.w} height={cd?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 2}} />
     <div style={{position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,.2)', padding: '.5rem', zIndex: 4}}>
       map offset: {mapOffset[0]} / {mapOffset[1]}<br/>
       drag offset: {dragOffset[0]} / {dragOffset[1]}<br/>

@@ -20,6 +20,7 @@ export type GameAction =
   | { type: 'setPeople', payload: Person[] }
   | { type: 'saveGame' }
   | { type: 'loadGame' }
+  | { type: 'console', mode?: 'error'|'log', data: any }
   | { type: '_test', data: { [k: string]: string | number } };
 
 type People = { [id: number]: Person };
@@ -169,6 +170,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         BLACKBOARD.catchUpFrom = savedState.gameTime;
         return savedState;
       }
+      return state;
+    case 'console':
+      console[action.mode || 'log'](...(!Array.isArray(action.data) ? [action.data] : action.data));
       return state;
     default:
       throw new Error(`Unhandled action type: ${action.type}`);
