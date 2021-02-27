@@ -111,7 +111,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newRelationships: Relationship[] = [];
       for (let i = 0; i < action.num; i++) {
         personId++;
-        const p = createRandomPerson(BLACKBOARD.processNow, state.map);
+        const p = createRandomPerson(BLACKBOARD.processTime, state.map);
         p.id = ++personId;
         newPeople[personId] = p;
         // newRelationships.push(...createParentChildRelationships(state.people.all[parent1], p).map(r => ({...r, id: ++relationshipId})));
@@ -133,7 +133,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     case 'addRandomPerson':
       personId = state.personId;
-      const ap = createRandomPerson(BLACKBOARD.processNow, state.map);
+      const ap = createRandomPerson(BLACKBOARD.processTime, state.map);
       ap.id = ++personId;
       return {
         ...state,
@@ -237,6 +237,7 @@ function useGameDispatch(): GameDispatch {
 }
 
 const BLACKBOARD: GameBlackboard = {
+  processTime: gameStartTime,
   _anchor: {very: 'heavy'},
   people: {},
 };
