@@ -1,11 +1,13 @@
 import React, { FC, memo, useCallback, useEffect, useRef, useState } from 'react';
 import TileSet from '../../../../public/img/TileSet.png';
-import { useGame } from '../../../context/game';
+import { useGameBlackboard, useGameDispatch, useGameStateRef } from '../../../context/game';
 import { htmlEmoji } from '../../../util/emoji';
 import { Person } from '../../../game/entity/person';
 import PersonCard from '../interface/PersonCard';
 import { OS } from '../../../util/platform';
 import { createMap, MapDisplay, renderMap } from '../../../game/entity/map';
+
+// TODO: get all this sprite drawing nonsense out of here, map should purely handle dom setup and interaction
 
 const bigIcons = [
   htmlEmoji('baby', 'light'),
@@ -95,7 +97,9 @@ const initSpriteBuffer = () => {
 };
 
 const Map: FC = () => {
-  const [s, d, bb] = useGame();
+  const sr = useGameStateRef();
+  const d = useGameDispatch();
+  const bb = useGameBlackboard();
   const ref = useRef<HTMLDivElement>(null);
   const [cd, setD] = useState({w: 0, h: 0});
   const [hoverData, setHoverData] = useState<{ person: Person, stateData?: any }|undefined>(undefined);
@@ -103,7 +107,7 @@ const Map: FC = () => {
   const [mapDisplay, setMapDisplay] = useState<MapDisplay|undefined>(undefined);
   const [mapOffset, setMapOffset] = useState<[number, number]>([0, 0]);
   const [dragOffset, setDragOffset] = useState<[number, number]>([0, 0]);
-  const [clientMousePos, setClientMousePos] = useState<[number, number]>([0, 0]);
+  // const [clientMousePos, setClientMousePos] = useState<[number, number]>([0, 0]);
   const [moving, setMoving] = useState<boolean>(false);
   const [tileLoaded, setTileLoaded] = useState<boolean>(false);
   const [tileSet] = useState<HTMLImageElement>(document.createElement('img'));
@@ -124,15 +128,20 @@ const Map: FC = () => {
 
   useEffect(() => {
     if (tileLoaded) {
-      mapCanvas = document.getElementById('map-canvas') as HTMLCanvasElement;
-      spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
+      // to be more react-y should these be handled with refs?  seems to work as-is
+      const mapCanvas = document.getElementById('map-canvas') as HTMLCanvasElement;
+      const spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
 
       const newD = {w: spriteCanvas.offsetWidth, h: spriteCanvas.offsetHeight};
       setD(newD);
 
       const mapCtx = mapCanvas.getContext('2d', {alpha: false});
       if (mapCanvas && mapCtx && spriteCanvas) {
-        const map = s.map || createMap({});
+        const map = sr.state.map || (() => {
+          const m = createMap({});
+          d({type: 'notify', content: `finished building map: (${m.width},${m.height})`});
+          return m;
+        })();
         d({type: 'setMap', map});
         setMapDisplay({
           map,
@@ -143,14 +152,13 @@ const Map: FC = () => {
           tileImg: tileSet,
           spriteImg: spriteCanvas,
         });
-        d({type: 'notify', content: `finished building map: (${map.width},${map.height})`});
       } else {
         throw new Error('something is horribly wrong, could not find map or sprite canvas');
       }
     }
-  }, [tileLoaded]);
+  }, [tileLoaded, sr.state.map]);
 
-  const doHoverId = (id: number): boolean => { setHoverData({ person: s.people[id], stateData: bb.people[id] }); return true; };
+  const doHoverId = useCallback((id: number): boolean => { setHoverData({ person: sr.state.people.all[id], stateData: bb.people[id] }); return true; }, []);
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setDragOffset([e.pageX, e.pageY]);
@@ -163,9 +171,7 @@ const Map: FC = () => {
     if (moving) {
       const offsetX = mapOffset[0] + (e.pageX - dragOffset[0]);
       const offsetY = mapOffset[1] + (e.pageY - dragOffset[1]);
-      // console.log(dragOffset);
-      setClientMousePos([e.pageX, e.pageY]);
-      // console.log('should render offset', offsetX, offsetY);
+      // setClientMousePos([e.pageX, e.pageY]);
       if (mapDisplay) {
         requestAnimationFrame(() => {
           renderMap(mapDisplay, offsetX, offsetY);
@@ -177,7 +183,9 @@ const Map: FC = () => {
       const posX = Math.floor((e.clientX - rect.left - mapOffset[0]) / 32);
       const posY = Math.floor((e.clientY - rect.top - mapOffset[1]) / 32);
       setMousePos([e.clientX - rect.left, e.clientY - rect.top]);
-      if (!s.living.some(id => (s.people[id].location.x === posX && s.people[id].location.y === posY) ? doHoverId(id) : false)) {
+      // this should really be integrated elsewhere -- scanning all living people's data on mousemove is expensive
+      const r = sr.state;
+      if (!r.people.living.some(id => (r.people.all[id].location.x === posX && r.people.all[id].location.y === posY) ? doHoverId(id) : false)) {
         setHoverData(undefined);
       }
     }
@@ -187,50 +195,47 @@ const Map: FC = () => {
     setMapOffset([mapOffset[0] + (e.pageX - dragOffset[0]), mapOffset[1] + (e.pageY - dragOffset[1])]);
   }, [dragOffset]);
 
-  let mapCanvas: HTMLCanvasElement;
-  let spriteCanvas: HTMLCanvasElement;
-
-  const renderSprites = (mapDisplay: MapDisplay, offsetX: number, offsetY: number) => {
+  const renderSprites = useCallback((mapDisplay: MapDisplay, offsetX: number, offsetY: number) => {
     // bconsole.log('s.gameTime', s.gameTime);
     const ctx = mapDisplay.spriteCanvas.getContext('2d');
     const {width: w, height: h} = mapDisplay.spriteCanvas;
     if (ctx) {
       ctx.clearRect(0, 0, w, h);
-      Object.values(s.people).forEach(p => {
-        const [lx, bx, ly, by] = [
-          Math.floor(-offsetX / 32),
-          Math.ceil((w - offsetX) / 32),
-          Math.floor(-offsetY / 32),
-          Math.ceil((h - offsetY) / 32),
-        ];
+      const [lx, bx, ly, by] = [
+        Math.floor(-offsetX / 32),
+        Math.ceil((w - offsetX) / 32),
+        Math.floor(-offsetY / 32),
+        Math.ceil((h - offsetY) / 32),
+      ];
+      Object.values(sr.state.people.all).forEach(p => {
         const {x, y} = p.location;
         if (x >= lx && x <= bx && y >= ly && y <= by) {
           drawAvatar(ctx, x * 32 + offsetX, y * 32 + offsetY, p.avatar, bb.people[p.id]?.interacting ? htmlEmoji('speech') : undefined);
         }
       });
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (mapDisplay && !moving) {
       renderMap(mapDisplay, mapOffset[0], mapOffset[1]);
     }
-  }, [mapDisplay, mapOffset, s.map]);
+  }, [mapDisplay, mapOffset, sr.state.map]);
   useEffect(() => {
     if (mapDisplay && !moving) {
       renderSprites(mapDisplay, mapOffset[0], mapOffset[1]);
     }
-  }, [mapDisplay, mapOffset, s]);
+  }, [mapDisplay, mapOffset, sr.state]);
 
   return <div style={{position: 'relative', flexGrow: 1, width: '100%', height: '100%'}}>
     <div ref={ref}/>
-    <canvas id={'map-canvas'} width={cd?.w} height={cd?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 1}} />
-    <canvas onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove} id={'sprite-canvas'} width={cd?.w} height={cd?.h} style={{position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', zIndex: 2}} />
-    <div style={{position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,.2)', padding: '.5rem', zIndex: 4}}>
+    <canvas className={'canvasDisplay'} id={'map-canvas'} width={cd?.w} height={cd?.h}/>
+    <canvas className={'canvasDisplay'} id={'sprite-canvas'}  width={cd?.w} height={cd?.h} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove}/>
+    {sr.state.DEBUG && <div style={{position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,.2)', padding: '.5rem', zIndex: 4}}>
       map offset: {mapOffset[0]} / {mapOffset[1]}<br/>
       drag offset: {dragOffset[0]} / {dragOffset[1]}<br/>
-      mouse pos: {clientMousePos[0]} / {clientMousePos[1]}
-    </div>
+      {/*mouse pos: {clientMousePos[0]} / {clientMousePos[1]}*/}
+    </div>}
     {hoverData?.person
       ? <div style={{
           transform: `translate(${(mousePos[0] < (cd.w / 2)) ? 0 : -105}%, ${(mousePos[1] < (cd.h / 2)) ? 0 : -100}%)`,

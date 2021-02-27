@@ -3,8 +3,8 @@ import { MomentaryTree } from './behavior';
 
 export const runMomentary = (game: Game): Game => {
   game.dispatch({type: 'setClock', now: game.blackboard.now});
-  Object.values(game.state.living).forEach(id => {
-    MomentaryTree(game.state.people[id], game);
+  Object.values(game.state.people.living).forEach(id => {
+    MomentaryTree(game.state.people.all[id], game);
   });
   return game;
 };

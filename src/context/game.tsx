@@ -1,9 +1,10 @@
 import React, { createContext, useReducer } from 'react';
-import { createPerson, Person, processBirthday } from '../game/entity/person';
+import { createRandomPerson, PeopleStore, Person, processBirthday } from '../game/entity/person';
 import { EmojiKey } from '../util/emoji';
 import LZipper from '../util/data/LZipper';
 import { bytesToSize } from '../util/lang-format';
 import { Map } from '../game/entity/map';
+import { Relationship, RelationshipStore } from '../game/entity/relationship';
 
 export type GameAction =
   { type: 'addClock', delta: number }
@@ -46,11 +47,11 @@ export interface GameState {
   fastForward: number;
   personId: number;
   placeId: number;
-  people: People;
-  living: number[];
-  dead: number[];
+  people: PeopleStore;
+  relationships: RelationshipStore;
   map?: Map;
   notifications: GameNotification[];
+  DEBUG: boolean;
 }
 
 export type GameDispatch = React.Dispatch<GameAction>;
@@ -76,10 +77,10 @@ const createGameState = (): GameState => {
     fastForward: 0,
     personId: 0,
     placeId: 0,
-    people: [],
-    living: [],
-    dead: [],
+    people: {id: 0, all: {}, living: [], dead: []},
+    relationships: {id: 0, all: {}, active: [], volatile: []},
     notifications: [],
+    DEBUG: false,
   };
 };
 
@@ -102,43 +103,61 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         peopleIds.push(c.id);
         return a;
       }, {} as People);
-      return {...state, people, living: peopleIds, dead: []};
+      return {...state, people: {id: state.people.id, all: people, living: peopleIds, dead: []}};
     case 'addRandomPeople':
-      personId = state.personId;
-      const newPeopleIds: number[] = [];
-      const newPeople: People = {};
+      personId = state.people.id;
+      const newPeople: {[k: number]: Person} = {};
+      let relationshipId = state.relationships.id;
+      const newRelationships: Relationship[] = [];
       for (let i = 0; i < action.num; i++) {
         personId++;
-        newPeople[personId] = createPerson(state.gameTime, personId);
-        newPeopleIds.push(personId);
+        const p = createRandomPerson(BLACKBOARD.processNow, state.map);
+        p.id = ++personId;
+        newPeople[personId] = p;
+        // newRelationships.push(...createParentChildRelationships(state.people.all[parent1], p).map(r => ({...r, id: ++relationshipId})));
+        // newRelationships.push(...createParentChildRelationships(state.people.all[parent2], p).map(r => ({...r, id: ++relationshipId})));
       }
       return {
         ...applyNotification(state, `Added ${action.num} people to game.`),
-        personId,
-        people: Object.assign(state.people, newPeople),
-        living: [...state.living, ...newPeopleIds],
+        people: {
+          ...state.people,
+          id: personId,
+          all: {...state.people.all, ...newPeople},
+          living: [...state.people.living, ...Object.keys(newPeople).map(k => parseInt(k, 10))],
+        },
+        relationships: {
+          ...state.relationships,
+          id: relationshipId,
+          all: {...state.relationships.all, ...(newRelationships.reduce((a, c) => {a[c.id] = c; return a; }, {} as {[k: number]: Relationship}))},
+        },
       };
     case 'addRandomPerson':
       personId = state.personId;
-      personId++;
+      const ap = createRandomPerson(BLACKBOARD.processNow, state.map);
+      ap.id = ++personId;
       return {
         ...state,
-        personId,
-        people: {...state.people, [personId]: createPerson(state.gameTime, personId)},
-        living: [...state.living, personId],
+        people: {
+          ...state.people,
+          all: {...state.people.all, [ap.id]: ap},
+          living: [...state.people.living, personId],
+        },
       };
     case 'updatePerson':
       if (!action.person.id) {
         return state;
       }
-      const person = Object.assign(state.people[action.person.id] || {}, action.person);
-      return {...state, people: {...state.people, [action.person.id]: person}};
+      const person = Object.assign(state.people.all[action.person.id] || {}, action.person);
+      return {...state, people: { ...state.people, all: {...state.people.all, [action.person.id]: person}}};
     case 'killPerson':
-      const dead = state.people[action.personId];
+      const dead = state.people.all[action.personId];
       return applyNotification({
         ...state,
-        living: state.living.filter(id => id !== action.personId),
-        dead: [...state.dead, action.personId],
+        people: {
+          ...state.people,
+          living: state.people.living.filter(id => id !== action.personId),
+          dead: [...state.people.dead, action.personId],
+        },
       }, `P{${dead.id}} ${action.reason}`, undefined, 'coffin');
     case 'setMap':
       return {...state, map: action.map};
@@ -152,7 +171,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const notice = {type: 'birthday', person: newP.id, val: newP.age}; // <>Happy <Val val={newP.age}/>, {newP.avatar}{newP.name.given} {newP.name.family}!</>;
       return {
         ...applyNotification(state, notice, BLACKBOARD.processTime, 'birthday'),
-        people: {...state.people, [p.id]: newP},
+        people: { ...state.people, all: {...state.people.all, [p.id]: newP}},
       };
     case 'saveGame':
       const compressed = LZipper.compress(JSON.stringify(state));
@@ -191,6 +210,7 @@ export const applyNotification = (state: GameState, content: string | GameEvent,
 
 function GameProvider({children}: GameProviderProps) {
   const [state, dispatch] = useReducer(gameReducer, createGameState());
+  STATE_REF.state = state;
   return (
     <GameStateContext.Provider value={state}>
       <GameDispatchContext.Provider value={dispatch}>
@@ -221,8 +241,17 @@ const BLACKBOARD: GameBlackboard = {
   people: {},
 };
 
+export type GameStateRef = { state: GameState };
+const STATE_REF: GameStateRef = {
+  state: createGameState(),
+};
+
 function useGameBlackboard(): GameBlackboard {
   return BLACKBOARD;
+}
+
+export function useGameStateRef(): GameStateRef {
+  return STATE_REF;
 }
 
 export const clearBlackboard = () => {

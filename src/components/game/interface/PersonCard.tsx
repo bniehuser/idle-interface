@@ -1,9 +1,13 @@
 import { Person } from '../../../game/entity/person';
-import React, { FC } from 'react';
+import React, { FC, memo } from 'react';
+import useTimedRefresh from '../../../hooks/useTimedRefresh';
 
 type PCProps = { person: Person, stateData?: any };
 
 export const PersonCard: FC<PCProps> = ({person, stateData}) => {
+
+  useTimedRefresh(200);
+
   return <div className={'interface'} style={{display: 'flex', flexDirection: 'row', pointerEvents: 'none'}}>
     <div style={{display: 'flex', flexDirection: 'column', marginRight: '.5rem'}}>
       <div style={{fontSize: '250%'}}>{person.avatar}</div>
@@ -23,4 +27,4 @@ export const PersonCard: FC<PCProps> = ({person, stateData}) => {
     </div>
   </div>;
 };
-export default PersonCard;
+export default memo(PersonCard);

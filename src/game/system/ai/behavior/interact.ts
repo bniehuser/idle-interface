@@ -16,12 +16,12 @@ export const FindPeople: TNode = (p, g) => {
   }
   const bp = b.people[p.id];
   if (b.processTime - (b.people[p.id]?.near?.lastCheck || 0) > b.speed) {
-    const ppl = g.state.living;
+    const ppl = g.state.people.living;
     bp.near = {
       lastCheck: b.processTime,
       people: ppl.reduce((a, c) => {
         if (c !== p.id) {
-          const np = g.state.people[c];
+          const np = g.state.people.all[c];
           const d = distance(p.location, np.location);
           if (d < FIND_PEOPLE_DISTANCE) {
             a[c] = d;
@@ -56,8 +56,8 @@ export const FinishInteraction: TNode = (p, g) => {
   const i = bbPerson(p.id, g.blackboard);
   const t = bbPerson(i.target, g.blackboard);
   t.interacting = i.interacting = false;
-  let ip = g.state.people[p.id];
-  let tp = g.state.people[i.target];
+  let ip = g.state.people.all[p.id];
+  let tp = g.state.people.all[i.target];
   if (t.initiated) {
     const s = ip;
     ip = tp;
@@ -71,7 +71,7 @@ export const FinishInteraction: TNode = (p, g) => {
 
 export const Communicate: TNode = (p, g) => {
   const b = g.blackboard.people[p.id];
-  const t = g.state.people[b.target];
+  const t = g.state.people.all[b.target];
   g.dispatch({type: 'notify', key: 'speech', content: `${p.avatar}${p.name.given} ${p.name.family} talked to ${t.avatar}${t.name.given} ${t.name.family}`});
   b.target = randArrayItem(b.near.people);
   return true;
