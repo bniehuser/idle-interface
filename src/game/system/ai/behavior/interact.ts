@@ -4,34 +4,35 @@ import { distance } from '../../../entity/map';
 import { bbPerson } from './util/blackboard';
 import { HOUR, legibleTimeDiff } from '../../../../util/const/time';
 import { Defer } from './defer';
+import Simulation from '../../../index';
 
 export const FIND_PEOPLE_DISTANCE = 10;
 
-export const FindPeople: TNode = (p, g) => {
-  const b = g.blackboard;
-  if (!b.people[p.id]) {
-    b.people[p.id] = {
-      near: {},
-    };
-  }
-  const bp = b.people[p.id];
-  if (b.processTime - (b.people[p.id]?.near?.lastCheck || 0) > b.speed) {
-    const ppl = g.state.people.living;
-    bp.near = {
-      lastCheck: b.processTime,
-      people: ppl.reduce((a, c) => {
-        if (c !== p.id) {
-          const np = g.state.people.all[c];
-          const d = distance(p.location, np.location);
-          if (d < FIND_PEOPLE_DISTANCE) {
-            a[c] = d;
+export const FindPeople: TNode = id => {
+  if (id) {
+    const { bb } = Simulation;
+    const bp = bbPerson(id, bb);
+
+    if (bb.lastSimulationTime - (bb.people[id]?.near?.lastCheck || 0) > bb.speed) {
+      const ppl = g.state.people.living;
+      bp.near = {
+        lastCheck: b.processTime,
+        people: ppl.reduce((a, c) => {
+          if (c !== p.id) {
+            const np = g.state.people.all[c];
+            const d = distance(p.location, np.location);
+            if (d < FIND_PEOPLE_DISTANCE) {
+              a[c] = d;
+            }
           }
-        }
-        return a;
-      }, {} as {[k: number]: number}),
-    };
+          return a;
+        }, {} as { [k: number]: number }),
+      };
+    }
+    return !!Object.keys(bp.near.people).length;
+  } else {
+    return false;
   }
-  return !!Object.keys(bp.near.people).length;
 };
 
 export const TargetForInteraction: TNode = (p, g) => {

@@ -19,7 +19,6 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
 
   return <Panel style={style}>
     <Watcher/>
-    <Watcher/>
     <div style={{display: 'flex', flexDirection: 'column', height: '100%', position: 'relative'}}>
       <div>
         <EmojiNote type={'beating-heart'}>Living: {sr.state.people.living.length}</EmojiNote>

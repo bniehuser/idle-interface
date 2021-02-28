@@ -78,6 +78,7 @@ export type SimulationBlackboard = {
   lastSimulationTime: number;
   lastSimulationStamps: FrequencyStamps;
   people: PeopleBlackboard;
+  speed: Simulation
 };
 
 const simulationStartTime = moment('3600-06-01 00:00:00').valueOf();
@@ -112,6 +113,7 @@ const main = (time: number) => {
     processTime += speed;
   }
   if (processTime < simulationTime) {
+    BB.speed = speed;
     // we're behind
     console.log('did not catch up');
   }
