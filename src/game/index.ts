@@ -12,7 +12,7 @@ let SETTINGS: SimulationSettings = {
   subscribers: {},
 };
 
-type SimulationSubscriber = (t: number) => void;
+export type SimulationSubscriber = (t: number) => void;
 
 export type SimulationSettings = {
   initialized: boolean;
@@ -143,6 +143,6 @@ const unsubscribe = (subscriber: SimulationSubscriber, type: SimulationFrequency
 };
 
 export type SimulationEngine = typeof Simulation;
-const Simulation = { start, stop, init, subscribe, unsubscribe };
+const Simulation = { start, stop, init, subscribe, unsubscribe, bb: BB, settings: SETTINGS };
 
 export default Simulation;

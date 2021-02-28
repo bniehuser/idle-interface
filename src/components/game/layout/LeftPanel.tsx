@@ -9,6 +9,7 @@ import StarIcon from '../interface/StarIcon';
 import Tooltip from '../interface/Tooltip';
 import NotificationList from '../hud/NotificationList';
 import useTimedRefresh from '../../../hooks/useTimedRefresh';
+import { Watcher } from '../hud/Watcher';
 
 const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
 
@@ -17,6 +18,8 @@ const LeftPanel: FC<{ style?: CSS.Properties }> = ({style}) => {
   const control = useTimedRefresh(2000);
 
   return <Panel style={style}>
+    <Watcher/>
+    <Watcher/>
     <div style={{display: 'flex', flexDirection: 'column', height: '100%', position: 'relative'}}>
       <div>
         <EmojiNote type={'beating-heart'}>Living: {sr.state.people.living.length}</EmojiNote>
