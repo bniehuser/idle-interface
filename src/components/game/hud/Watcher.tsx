@@ -1,12 +1,12 @@
 import React, { FC, memo } from 'react';
-import { useHourly } from '../../../hooks/useHourly';
-import Simulation from '../../../game';
+import { useHourly } from '../../../hooks/simulation';
+import Simulation from '../../../simulation';
 
 export const Watcher: FC = memo(() => {
   useHourly(undefined, true);
-  console.log('rendering hourly?');
   return <div>
-    <pre>{Simulation.bb.lastSimulationTime}</pre>
+    <pre>{Simulation.scratch.lastSimulationTime}</pre>
+    <pre>{Simulation.settings._test}</pre>
     <button onClick={() => Simulation.start()}>Start</button>
     <button onClick={() => Simulation.stop()}>Stop</button>
   </div>;

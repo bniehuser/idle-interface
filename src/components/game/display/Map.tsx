@@ -1,11 +1,11 @@
 import React, { FC, memo, useCallback, useEffect, useRef, useState } from 'react';
 import TileSet from '../../../../public/img/TileSet.png';
 import { useGameBlackboard, useGameDispatch, useGameStateRef } from '../../../context/game';
+import { createMap, MapDisplay, renderMap } from '../../../simulation/entity/map';
+import { Person } from '../../../simulation/entity/person';
 import { htmlEmoji } from '../../../util/emoji';
-import { Person } from '../../../game/entity/person';
-import PersonCard from '../interface/PersonCard';
 import { OS } from '../../../util/platform';
-import { createMap, MapDisplay, renderMap } from '../../../game/entity/map';
+import PersonCard from '../interface/PersonCard';
 
 // TODO: get all this sprite drawing nonsense out of here, map should purely handle dom setup and interaction
 

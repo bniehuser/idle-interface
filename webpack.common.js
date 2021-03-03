@@ -32,6 +32,12 @@ module.exports = {
                 test: /\.(png|svg|jpg|jpeg|gif)$/i,
                 type: 'asset/resource',
             },
+            {
+                test: /\.(glsl|vert|frag)$/,
+                use: {
+                    loader: 'ts-shader-loader'
+                },
+            },
         ],
     },
     resolve: {

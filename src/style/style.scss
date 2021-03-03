@@ -52,10 +52,23 @@ body {
   }
 }
 
+@keyframes ping {
+  0% {
+    background-color: #773;
+  }
+  100% {
+    background-color: inherit;
+  }
+}
+
 
 .flash {
   // font-size:120%;
   animation: embolden 2000ms infinite forwards;
+}
+
+.renderFlash {
+  animation: ping 500ms forwards;
 }
 
 

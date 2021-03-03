@@ -1,49 +1,44 @@
-import React, { FC, memo, useEffect } from 'react';
-import { GameEngine } from 'react-game-engine';
-import Clock from './hud/Clock';
-import { Game as GameObject, useGameBlackboard, useGameDispatch, useGameStateRef } from '../../context/game';
 import CSS from 'csstype';
-import { AI, GameTime } from '../../game/system';
-import Map from './display/Map';
-import Simulation from '../../game';
+import React, { FC, memo, useEffect } from 'react';
+import { useGameDispatch } from '../../context/game';
+import Simulation from '../../simulation';
+import { dailyAI, hourlyAI, momentaryAI } from '../../simulation/system';
 import { DAY, HOUR, MINUTE } from '../../util/const/time';
-import { runMomentary } from '../../game/system/ai/momentary';
-import { runHourly } from '../../game/system/ai/hourly';
-import { runDaily } from '../../game/system/ai/daily';
+import Map from './display/Map';
+import Clock from './hud/Clock';
 
 const Game: FC<{ style: CSS.Properties }> = ({style}) => {
-  const sr = useGameStateRef();
   const dispatch = useGameDispatch();
-  const bb = useGameBlackboard();
   useEffect(() => {
 
+    // here we're just managing some things up front that we know should be set for the life of the simulation
     Simulation.init({
       subscribers: {
-        [MINUTE]: [runMomentary],
-        [HOUR]: [runHourly],
-        [DAY]: [runDaily],
+        [MINUTE]: [momentaryAI],
+        [HOUR]: [hourlyAI],
+        [DAY]: [dailyAI],
       },
+      _test: 'did we merge?',
     });
-    Simulation.start();
+    // Simulation.start();
 
     dispatch({type: 'addRandomPeople', num: 500});
     dispatch({type: 'notify', key: 'gear', content: 'Game Initialized.'});
   }, []);
-  return <GameEngine style={style}
-    systems={[
-      (game: GameObject) => ({...game, state: sr.state}), // this need SERIOUS rethought
-      GameTime,
-      AI,
-    ]}
-    entities={{
-      state: sr.state,
-      dispatch,
-      blackboard: bb,
-      clock: {renderer: <Clock/>},
-    }}
-  >
-    <Map/>
-  </GameEngine>;
+  return <div style={{...style, flex: '1 1 0%'}}><Map/><Clock/></div>;
+  // return <GameEngine style={style}
+  //   systems={[
+  //     (game: GameObject) => ({...game, state: sr.state}), // this need SERIOUS rethought
+  //   ]}
+  //   entities={{
+  //     state: sr.state,
+  //     dispatch,
+  //     blackboard: bb,
+  //     clock: {renderer: <Clock/>},
+  //   }}
+  // >
+  //   <Map/>
+  // </GameEngine>;
 };
 
 export default memo(Game);

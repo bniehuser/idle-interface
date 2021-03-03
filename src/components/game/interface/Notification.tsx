@@ -1,10 +1,10 @@
 import React, { FC, memo } from 'react';
 import { GameEvent, GameNotification } from '../../../context/game';
+import { Person } from '../../../simulation/entity/person';
 import DateNote from './DateNote';
 import EmojiNote from './EmojiNote';
-import Val from './Val';
-import { Person } from '../../../game/entity/person';
 import { PersonName } from './PersonName';
+import Val from './Val';
 
 type NotificationProps = { n: GameNotification, p?: Person };
 

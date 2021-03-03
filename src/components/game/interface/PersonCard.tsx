@@ -1,6 +1,6 @@
-import { Person } from '../../../game/entity/person';
 import React, { FC, memo } from 'react';
 import useTimedRefresh from '../../../hooks/useTimedRefresh';
+import { Person } from '../../../simulation/entity/person';
 
 type PCProps = { person: Person, stateData?: any };
 

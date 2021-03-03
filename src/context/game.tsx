@@ -1,10 +1,10 @@
 import React, { createContext, useReducer } from 'react';
-import { createRandomPerson, PeopleStore, Person, processBirthday } from '../game/entity/person';
-import { EmojiKey } from '../util/emoji';
+import { Map } from '../simulation/entity/map';
+import { createRandomPerson, PeopleStore, Person, processBirthday } from '../simulation/entity/person';
+import { Relationship, RelationshipStore } from '../simulation/entity/relationship';
 import LZipper from '../util/data/LZipper';
+import { EmojiKey } from '../util/emoji';
 import { bytesToSize } from '../util/lang-format';
-import { Map } from '../game/entity/map';
-import { Relationship, RelationshipStore } from '../game/entity/relationship';
 
 export type GameAction =
   { type: 'addClock', delta: number }
@@ -60,7 +60,7 @@ export type GameBlackboard = {
   [k: string]: any,
 };
 
-// for use with react-game-engine
+// for use with react-simulation-engine
 export type Game = {
   state: GameState,
   dispatch: GameDispatch,
@@ -70,7 +70,7 @@ export type Game = {
 
 export const gameStartTime = new Date('3600-06-01 00:00:00').getTime();
 
-const createGameState = (): GameState => {
+export const createGameState = (): GameState => {
   return {
     realStart: Date.now(),
     gameTime: gameStartTime,
