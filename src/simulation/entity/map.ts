@@ -120,6 +120,19 @@ const makeTileIdxFinder = (width: number) => (x: number, y: number): number => w
 const makeTileFinder = (map: Map) => (x: number, y: number): undefined | MapTile => map.tiles[map.width * y + x];
 const makeTilePropsFinder = (map: Map) => (x: number, y: number): undefined | MapTileProperties => mapTileTypes[map.tiles[map.width * y + x]?.type];
 
+// make a texture pixel map
+export const makeMapTexture = (map: Map): Uint8Array => {
+  const pixArray = new Uint8Array(map.width * map.height * 4);
+  for (let i = 0; i < map.tiles.length; i++) {
+    const idx = i * 4;
+    pixArray[idx] = Math.min(mapTileTypes[map.tiles[i].type].position[0], 255);
+    pixArray[idx + 1] = Math.min(mapTileTypes[map.tiles[i].type].position[1], 255);
+    pixArray[idx + 2] = 0; // we'll use these later -- walkable?  lightable? tile rotation/variant? many flag options
+    pixArray[idx + 3] = 255; // leave full alpha in case we want to visualize it
+  }
+  return pixArray;
+};
+
 export interface MapDisplay {
   map: Map;
   canvas: HTMLCanvasElement;

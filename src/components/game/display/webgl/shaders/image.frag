@@ -1,7 +1,7 @@
 #version 300 es
 precision mediump float;
 
-out vec2 vTextureCoord;
+in vec2 vTextureCoord;
 out vec4 vFragColor;
 
 uniform sampler2D uSampler;

@@ -4,7 +4,7 @@ import { useGameDispatch } from '../../context/game';
 import Simulation from '../../simulation';
 import { dailyAI, hourlyAI, momentaryAI } from '../../simulation/system';
 import { DAY, HOUR, MINUTE } from '../../util/const/time';
-import Map from './display/Map';
+import { Experiment } from './display/experiments/Experiment';
 import Clock from './hud/Clock';
 
 const Game: FC<{ style: CSS.Properties }> = ({style}) => {
@@ -25,7 +25,10 @@ const Game: FC<{ style: CSS.Properties }> = ({style}) => {
     dispatch({type: 'addRandomPeople', num: 500});
     dispatch({type: 'notify', key: 'gear', content: 'Game Initialized.'});
   }, []);
-  return <div style={{...style, flex: '1 1 0%'}}><Map/><Clock/></div>;
+  return <div style={{...style, flex: '1 1 0%'}}>
+    <Experiment/>
+    {/*<Map/>*/}
+    <Clock/></div>;
   // return <GameEngine style={style}
   //   systems={[
   //     (game: GameObject) => ({...game, state: sr.state}), // this need SERIOUS rethought

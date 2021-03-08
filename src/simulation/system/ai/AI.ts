@@ -1,10 +1,10 @@
-import { GameEngineSystem } from 'react-game-engine';
-import { runMomentary } from './momentary';
-import { runHourly } from './hourly';
-import { runDaily } from './daily';
-import { fastForwardFrequency, HOUR, legibleTimeDiff, MINUTE } from '../../../util/const/time';
-import { Game } from '../../../context/game';
 import moment from 'moment';
+import { GameEngineSystem } from 'react-game-engine';
+import { Game } from '../../../context/game';
+import { fastForwardFrequency, HOUR, legibleTimeDiff, MINUTE } from '../../../util/const/time';
+import { runDaily } from './daily';
+import { runHourly } from './hourly';
+import { runMomentary } from './momentary';
 
 let LAST_MINUTE = 0;
 let LAST_HOUR = 0;

@@ -23,7 +23,7 @@ const SCRATCH: SimulationScratch = createSimulationScratch();
 const STATE: SimulationState = createSimulationState();
 
 const init = (settings: Partial<SimulationSettings>) => {
-  console.log('NOW INIT:', SETTINGS.subscribers[HOUR], SETTINGS.subscribers[HOUR]?.length, settings.subscribers?.[HOUR], settings.subscribers?.[HOUR].length);
+  console.log('NOW INIT:', SETTINGS.subscribers[HOUR], SETTINGS.subscribers[HOUR]?.length, settings.subscribers?.[HOUR], settings.subscribers?.[HOUR]?.length);
   // override settings
   mergeDeep(SETTINGS, settings);
   console.log('NOW MERGED:', SETTINGS.subscribers[HOUR], SETTINGS.subscribers[HOUR]?.length);
@@ -62,8 +62,45 @@ const main = (time: number) => {
   SCRATCH.lastTime = time; // totally unnecessary for our purposes, until we start messing with performance
 };
 
+type HandlerStore = {[k: string]: EventListener};
+
+const WINDOW_LISTENERS: HandlerStore = {
+  'mousedown': () => { SCRATCH.input.mouse.down = true; },
+  'mouseup': () => { SCRATCH.input.mouse.down = false; },
+  'mousemove': evt => {
+    const e = evt as MouseEvent;
+    SCRATCH.input.mouse.x = e.offsetX;
+    SCRATCH.input.mouse.y = e.offsetY;
+  },
+  'wheel': evt => {
+    const e = evt as WheelEvent;
+    console.log('settingScroll', normalizeWheelDelta(e));
+    SCRATCH.input.mouse.scroll = normalizeWheelDelta(e);
+    console.log('wheel event');
+  },
+};
+
+const normalizeWheelDelta = (wheelEvent: WheelEvent): number => {
+  let delta = 0;
+  const wheelDelta = ('wheelDelta' in wheelEvent) ? wheelEvent['wheelDelta'] : undefined;
+  const deltaY = wheelEvent.deltaY;
+  // CHROME WIN/MAC | SAFARI 7 MAC | OPERA WIN/MAC | EDGE
+  if (wheelDelta) {
+    delta = -wheelDelta / 120;
+  }
+  // FIREFOX WIN / MAC | IE
+  if (deltaY) {
+    deltaY > 0 ? delta = 1 : delta = -1;
+  }
+  return delta;
+};
+
+export const enableInput = () => Object.keys(WINDOW_LISTENERS).forEach(k => window.addEventListener(k, WINDOW_LISTENERS[k]));
+export const disableInput = () => Object.keys(WINDOW_LISTENERS).forEach(k => window.removeEventListener(k, WINDOW_LISTENERS[k]));
+
 const start = () => {
   if (!FRAME) {
+    enableInput();
     FRAME = requestAnimationFrame(main);
   } else {
     event(SimulationEventType.Error, 'simulationStart', 'Simulation already started!');
@@ -73,6 +110,7 @@ const start = () => {
 const stop = () => {
   if (FRAME) {
     cancelAnimationFrame(FRAME);
+    disableInput();
     FRAME = undefined;
   } else {
     event(SimulationEventType.Error, 'simulationStop', 'Simulation not running!');

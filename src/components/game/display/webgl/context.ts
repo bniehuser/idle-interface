@@ -18,7 +18,6 @@ export interface GLShader {
   program: WebGLProgram;
 }
 
-
 export const createGLContext = (canvas: HTMLCanvasElement): GLContext => {
   const ctx = canvas.getContext('webgl2');
   if (ctx == null) {
@@ -64,7 +63,11 @@ export const createGLContext = (canvas: HTMLCanvasElement): GLContext => {
       const uniformBuffer = ctx.createBuffer();
       if (!uniformBuffer) throw new Error('could not create uniform buffer.');
 
-      shaders['background'] = {gl: ctx, program: createGLShader(ctx, backgroundVS, backgroundFS), attributes: {}, uniformBuffer};
+      const bg = createGLShader(ctx, backgroundVS, backgroundFS);
+      // Object.keys(bg.uniforms).forEach(k => {
+      //   uniformBuffer
+      // });
+      shaders['background'] = {gl: ctx, program: bg.program, attributes: bg.attrib, uniformBuffer};
       shaders['image'] = {gl: ctx, program: createGLShader(ctx, imageVS, imageFS), attributes: {}, uniformBuffer};
     },
   };
@@ -97,13 +100,24 @@ export const createGLShader = (gl: WebGL2RenderingContext, vertSource: string, f
 
   // now we set some stuff
   const numA = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+  const attrib: {[k: string]: number} = {};
   for (let i = 0; i < numA; ++i) {
     const a = gl.getActiveAttrib(program, i);
-    const attrib: {[k: string]: number} = {};
     if (a) { attrib[a.name] = gl.getAttribLocation(program, a.name); }
   }
 
-  return { program, attrib };
+  const numU = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+  const uniforms: {[k: string]: WebGLUniformLocation} = {};
+  for (let i = 0; i < numU; ++i) {
+    const u = gl.getActiveUniform(program, i);
+    if (u) {
+      const un = u.name.replace('[0]', '');
+      const l = gl.getUniformLocation(program, un);
+      if (l) { uniforms[u.name] = l; }
+    }
+  }
+
+  return { program, attrib, uniforms };
 };
 
 export const compileShader = (gl: WebGL2RenderingContext, type: number, source: string): WebGLShader => {
@@ -118,3 +132,14 @@ export const compileShader = (gl: WebGL2RenderingContext, type: number, source: 
   }
   return shader;
 };
+
+// export const createTexture = (gl: WebGL2RenderingContext, img: TexImageSource): WebGLTexture => {
+//   const t = gl.createTexture();
+//   if (!t) throw new Error('could not create texture!');
+//   // set texture settings prior to actually generating texture
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+//   return t;
+// };
