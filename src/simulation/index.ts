@@ -45,9 +45,6 @@ const main = (time: number) => {
   while ((SCRATCH.processTime < simulationTime) && performance.now() < timeout) {
     SIMULATION_FREQUENCIES.forEach((f: SimulationFrequency) => {
       if (f >= SCRATCH.speed && frequencyComparators[f](SCRATCH.lastSimulationTime, SCRATCH.processTime) && SETTINGS.subscribers[f]) {
-        if (f === HOUR) {
-          console.log('should run hourly subscribers', SETTINGS._test);
-        }
         SETTINGS.subscribers[f]?.forEach(s => s(SCRATCH.processTime));
       }
     });
