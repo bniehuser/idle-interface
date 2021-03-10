@@ -88,7 +88,7 @@ export const Map: FC = () => {
     const pixTex = textureFromPixArray(gl, pixArray, map.width, map.height);
     const tileImg = new Image();
     tileImg.src = TileSet;
-    const tileTex = textureFromImg(gl, tileImg, () => render(Simulation.state.gameTime));
+    const tileTex = textureFromImg(gl, tileImg, () => render(Simulation.state.simulationTime));
     const nearestSampler = createSampler(gl, 'nearest');
 
     // this could be done per-frame, but we're just using the one, so set and forget
@@ -173,7 +173,7 @@ export const Map: FC = () => {
     };
 
     // render now (why not?)
-    render(Simulation.state.gameTime);
+    render(Simulation.state.simulationTime);
 
     // this should be elsewhere
     // Simulation.state.DEBUG = true;

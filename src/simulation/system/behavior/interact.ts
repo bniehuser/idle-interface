@@ -5,10 +5,11 @@ import Simulation from '../../index';
 import { SimulationEventType } from '../event';
 import { Defer } from './defer';
 import { PersonNode, RandomChance, Sequence } from './tree';
+import { getPersonScratch } from '../../scratch';
 
 export const FIND_PEOPLE_DISTANCE = 10;
 
-const scratchPerson = (id: number) => Simulation.scratch.people[id];
+const scratchPerson = (id: number) => getPersonScratch(Simulation.scratch, id);
 const statePerson = (id: number) => Simulation.state.people.all[id];
 const t = () => Simulation.scratch.processTime;
 

@@ -1,10 +1,11 @@
 import React, { createContext, useReducer } from 'react';
 import { Map } from '../simulation/entity/map';
-import { createRandomPerson, PeopleStore, Person, processBirthday } from '../simulation/entity/person';
+import { createRandomPerson, PersonStore, Person, processBirthday } from '../simulation/entity/person';
 import { Relationship, RelationshipStore } from '../simulation/entity/relationship';
 import LZipper from '../util/data/LZipper';
 import { EmojiKey } from '../util/emoji';
 import { bytesToSize } from '../util/lang-format';
+import { SimulationState } from '../simulation/state';
 
 export type GameAction =
   { type: 'addClock', delta: number }
@@ -47,7 +48,7 @@ export interface GameState {
   fastForward: number;
   personId: number;
   placeId: number;
-  people: PeopleStore;
+  people: PersonStore;
   relationships: RelationshipStore;
   map?: Map;
   notifications: GameNotification[];
@@ -111,7 +112,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newRelationships: Relationship[] = [];
       for (let i = 0; i < action.num; i++) {
         personId++;
-        const p = createRandomPerson(BLACKBOARD.processTime, state.map);
+        const p = createRandomPerson({simulationTime: state.gameTime, map: state.map} as SimulationState);
         p.id = ++personId;
         newPeople[personId] = p;
         // newRelationships.push(...createParentChildRelationships(state.people.all[parent1], p).map(r => ({...r, id: ++relationshipId})));
@@ -133,7 +134,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     case 'addRandomPerson':
       personId = state.personId;
-      const ap = createRandomPerson(BLACKBOARD.processTime, state.map);
+      const ap = createRandomPerson({simulationTime: state.gameTime, map: state.map} as SimulationState);
       ap.id = ++personId;
       return {
         ...state,

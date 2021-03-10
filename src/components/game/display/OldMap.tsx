@@ -2,7 +2,7 @@ import React, { FC, memo, useCallback, useEffect, useRef, useState } from 'react
 import TileSet from '../../../../public/img/TileSet.png';
 import { useGameBlackboard, useGameDispatch, useGameStateRef } from '../../../context/game';
 import { createMap, MapDisplay, renderMap } from '../../../simulation/entity/map';
-import { Person } from '../../../simulation/entity/person';
+import { Person_old } from '../../../simulation/entity/person_old';
 import { htmlEmoji } from '../../../util/emoji';
 import { OS } from '../../../util/platform';
 import PersonCard from '../interface/PersonCard';
@@ -102,7 +102,7 @@ const OldMap: FC = () => {
   const bb = useGameBlackboard();
   const ref = useRef<HTMLDivElement>(null);
   const [cd, setD] = useState({w: 0, h: 0});
-  const [hoverData, setHoverData] = useState<{ person: Person, stateData?: any }|undefined>(undefined);
+  const [hoverData, setHoverData] = useState<{ person: Person_old, stateData?: any }|undefined>(undefined);
   const [mousePos, setMousePos] = useState<[number, number]>([0, 0]);
   const [mapDisplay, setMapDisplay] = useState<MapDisplay|undefined>(undefined);
   const [mapOffset, setMapOffset] = useState<[number, number]>([0, 0]);

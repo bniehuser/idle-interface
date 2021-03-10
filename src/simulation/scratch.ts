@@ -1,7 +1,7 @@
 import { MINUTE } from '../util/const/time';
 import { mergeDeep } from '../util/data-access';
 import { DEFAULT_START_TIME } from './defaults';
-import { PersonScratch } from './entity/person/person.scratch';
+import { createPersonScratch, PersonScratch } from './entity/person/person.scratch';
 import { createSimulationInputScratch, SimulationInputScratch } from './system/input';
 import { FrequencyStamps, lastStampsFor, SimulationFrequency } from './time';
 
@@ -51,3 +51,12 @@ export const createSimulationScratch = (data: Partial<SimulationScratch> = {}): 
   speed: MINUTE,
   input: createSimulationInputScratch(),
 }, data);
+
+export const addPersonScratch = (scratch: SimulationScratch, id: number) => {
+  const s = createPersonScratch();
+  scratch.people[id] = s;
+  return s;
+};
+
+export const findPersonScratch = (scratch: SimulationScratch, id: number): PersonScratch => scratch.people[id];
+export const getPersonScratch = (scratch: SimulationScratch, id: number) => findPersonScratch(scratch, id) || addPersonScratch(scratch, id);

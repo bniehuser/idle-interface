@@ -2,7 +2,6 @@ import { ALWAYS } from '../util/const/time';
 import { mergeDeep } from '../util/data-access';
 import { DEFAULT_START_TIME } from './defaults';
 import { Map } from './entity/map';
-import { PeopleStore } from './entity/person';
 import { RelationshipStore } from './entity/relationship';
 import {
   createEventLog,
@@ -12,6 +11,7 @@ import {
   SimulationEventType,
 } from './system/event';
 import { SimulationFrequency } from './time';
+import { createPersonStore, PersonStore } from './entity/person';
 
 export type SimulationSubscriber = (t: number) => void;
 export type SimulationEventSubscriber = (e: SimulationEvent) => void;
@@ -32,11 +32,11 @@ export interface SimulationState {
     [k: string]: string | number,
   };
   realStart: number;
-  gameTime: number;
+  simulationTime: number;
   fastForward: number;
   personId: number;
   placeId: number;
-  people: PeopleStore;
+  people: PersonStore;
   relationships: RelationshipStore;
   map?: Map;
   events: SimulationEventLog;
@@ -45,11 +45,11 @@ export interface SimulationState {
 
 export const createSimulationState = (data: Partial<SimulationState> = {}): SimulationState => mergeDeep({
     realStart: Date.now(),
-    gameTime: DEFAULT_START_TIME,
+    simulationTime: DEFAULT_START_TIME,
     fastForward: 0,
     personId: 0,
     placeId: 0,
-    people: {id: 0, all: {}, living: [], dead: []},
+    people: createPersonStore(),
     relationships: {id: 0, all: {}, active: [], volatile: []},
     events: createEventLog(),
     DEBUG: false,

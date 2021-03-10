@@ -18,7 +18,7 @@ const skinTones = ['light', 'med-light', 'med', 'med-dark', 'dark'] as const;
 type SkinTone = typeof skinTones[number];
 
 // interface
-export interface Person extends Entity {
+export interface Person_old extends Entity {
   name: {
     given: string;
     family: string;
@@ -41,7 +41,7 @@ export interface Mood {
   happiness: number;
 }
 
-export interface PeopleStore extends EntityStore<Person> {
+export interface PeopleStore extends EntityStore<Person_old> {
   living: number[];
   dead: number[];
 }
@@ -52,7 +52,7 @@ export type PersonEntities = {
 };
 
 // defaults
-const defaultPerson: Person = {
+const defaultPerson: Person_old = {
   id: 0,
   name: { given: '', family: '' },
   parent1: 0,
@@ -69,7 +69,7 @@ const defaultPerson: Person = {
   location: { x: 0, y: 0 },
 };
 
-export const createRandomPerson = (now: number, map?: Map, properties: Partial<Person> = {}): Person => {
+export const createRandomPerson = (now: number, map?: Map, properties: Partial<Person_old> = {}): Person_old => {
   properties.gender = properties.gender || randArrayItem(genders);
   properties.skinTone = properties.skinTone || randArrayItem(skinTones);
   properties.birthday = properties.birthday || now - Math.random() * YEAR * 80;
@@ -85,7 +85,7 @@ export const createRandomPerson = (now: number, map?: Map, properties: Partial<P
   return createPerson(properties);
 };
 
-export const createParentChildRelationships = (parent: Person, child: Person): Relationship[] => {
+export const createParentChildRelationships = (parent: Person_old, child: Person_old): Relationship[] => {
   return [createRelationship({
     type: 'parent',
     source: child.id,
@@ -103,7 +103,7 @@ export const createParentChildRelationships = (parent: Person, child: Person): R
 };
 
 // create
-export const createPerson = (properties: Partial<Person>): Person => ({...defaultPerson, ...properties});
+export const createPerson = (properties: Partial<Person_old>): Person_old => ({...defaultPerson, ...properties});
 
 // util
 export const getRandomGivenName = (gender: Gender) => {
@@ -139,7 +139,7 @@ export const calcAvatar = (gender: Gender, skinTone: SkinTone, age: number): str
   return htmlEmoji(emojiKey, skinTone);
 };
 
-export const processBirthday = (p: Person, now: number): Partial<Person> => {
+export const processBirthday = (p: Person_old, now: number): Partial<Person_old> => {
   const age = calcAge(p.birthday, now);
   return {age, avatar: calcAvatar(p.gender, p.skinTone, age)};
 };

@@ -6,6 +6,7 @@ import { dailyAI, hourlyAI, momentaryAI } from '../../simulation/system';
 import { DAY, HOUR, MINUTE } from '../../util/const/time';
 import { Map } from './display/Map';
 import Clock from './hud/Clock';
+import { addPerson, createRandomPerson } from '../../simulation/entity/person';
 
 const Game: FC<{ style: CSS.Properties }> = ({style}) => {
   const dispatch = useGameDispatch();
@@ -19,6 +20,11 @@ const Game: FC<{ style: CSS.Properties }> = ({style}) => {
         [DAY]: [dailyAI],
       },
       _test: 'did we merge?',
+    });
+
+    Array.from(Array(100), () => {
+      addPerson(Simulation.state.people, createRandomPerson(Simulation.state));
+      console.log('adding people to simulation?', Simulation.state.people.id);
     });
     // Simulation.start();
 
