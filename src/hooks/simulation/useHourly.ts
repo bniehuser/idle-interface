@@ -11,7 +11,6 @@ export const useHourly = (f?: SimulationSubscriber, refresh?: boolean) => {
   };
   useEffect(() => {
     Simulation.subscribe(subscriber, HOUR);
-    console.log('USEHOURLY DID SUBSCRIPTION:', Simulation.settings.subscribers[HOUR], Simulation.settings.subscribers[HOUR]?.length);
     return () => Simulation.unsubscribe(subscriber, HOUR);
   }, []);
 };

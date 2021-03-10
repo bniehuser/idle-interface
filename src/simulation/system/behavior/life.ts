@@ -1,4 +1,6 @@
 import moment from 'moment';
+import { YEAR } from '../../../util/const/time';
+import { calcAvatar } from '../../entity/person';
 import Simulation from '../../index';
 import { SimulationEventType } from '../event';
 import { IsOld, IsVeryOld, KillPerson } from './person';
@@ -24,7 +26,10 @@ export const Nap: PersonNode = () => false;
 export const Birthday: PersonNode = id => {
   const p = Simulation.state.people.all[id];
   if (p && moment(p.birthday).dayOfYear() === moment(Simulation.scratch.processTime).dayOfYear()) {
-    Simulation.event({type: SimulationEventType.Person, sub: 'birthday', entityId: id});
+    const age = ((Simulation.scratch.processTime - p.birthday) / YEAR) | 0;
+    p.avatar = calcAvatar(p.gender, p.skinTone, age);
+    p.age = age;
+    Simulation.event({type: SimulationEventType.Person, sub: 'birthday', entityId: id, data: `Happy V{${age},*} birthday, P{${id}}!`, public: true});
     return true;
   }
   return false;
@@ -47,5 +52,5 @@ export const GetAngry: PersonNode = Sequence(
 
 export const FindMoney: PersonNode = Sequence(
   RandomChance(.000004),
-  id => Notify(`P{${id}} found $100 on the ground!`, 'money')(id),
+  id => Notify(`P{${id}} found V{$100,money} on the ground!`, 'luck')(id),
 );

@@ -1,10 +1,10 @@
 // interface
+import { mergeDeep } from '../../../util/data-access';
+import { htmlEmoji } from '../../../util/emoji';
 import { AI, createAI } from '../../component/ai';
 import { createSchedule, Schedule } from '../../component/schedule';
 import { Entity, EntityStore } from '../entity';
 import { MapPoint } from '../map';
-import { mergeDeep } from '../../../util/data-access';
-import { htmlEmoji } from '../../../util/emoji';
 
 export const GENDERS = ['male', 'female'] as const;
 export type Gender = typeof GENDERS[number];
@@ -53,7 +53,7 @@ export const createPersonStore = (data: Partial<PersonStore> = {}): PersonStore 
 
 export const addPerson = (store: PersonStore, person: Partial<Person>): Person => {
   store.id++;
-  store.all[store.id] = createPerson({id: store.id, ...person});
+  store.all[store.id] = createPerson({...person, id: store.id}); // FORCE id
   store.living.push(store.id);
   return store.all[store.id];
 };

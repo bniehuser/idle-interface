@@ -46,7 +46,9 @@ const main = (time: number) => {
 
   const timeout = performance.now() + MAX_PROCESS_TIME;
   SCRATCH.processTime = SCRATCH.lastSimulationTime + SCRATCH.speed;
+  let iterations = 0;
   while ((SCRATCH.processTime < simulationTime) && performance.now() < timeout) {
+    iterations++;
     SIMULATION_FREQUENCIES.forEach((f: SimulationFrequency) => {
       if (f >= SCRATCH.speed && frequencyComparators[f](SCRATCH.lastSimulationTime, SCRATCH.processTime) && SETTINGS.subscribers[f]) {
         SETTINGS.subscribers[f]?.forEach(s => s(SCRATCH.processTime));
@@ -57,7 +59,7 @@ const main = (time: number) => {
   }
   if (SCRATCH.processTime < simulationTime) {
     // we're behind
-    console.log('did not catch up');
+    console.log('did not catch up, tried iterations: ', iterations);
   }
 
   SCRATCH.lastTime = time; // totally unnecessary for our purposes, until we start messing with performance
@@ -88,7 +90,6 @@ const subscribe = (subscriber: SimulationSubscriber, type: SimulationFrequency =
   } else {
     SETTINGS.subscribers[type]?.push(subscriber);
   }
-  console.log('after subscription: ', type, SETTINGS.subscribers);
 };
 
 const unsubscribe = (subscriber: SimulationSubscriber, type: SimulationFrequency = ALWAYS) => {

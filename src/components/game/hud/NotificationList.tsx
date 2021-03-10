@@ -1,15 +1,26 @@
-import React, { FC } from 'react';
-import { useGameStateRef } from '../../../context/game';
+import React, { FC, useEffect, useState } from 'react';
+import Simulation from '../../../simulation';
+import { SimulationEvent, SimulationEventType } from '../../../simulation/system/event';
+import { MINUTE } from '../../../util/const/time';
 import Notification from '../interface/Notification';
-import useTimedRefresh from '../../../hooks/useTimedRefresh';
 
 const NotificationList: FC = () => {
+  const [localEvents, setLocalEvents] = useState<SimulationEvent[]>([]);
 
-  const sr = useGameStateRef();
-  useTimedRefresh(200);
+  useEffect(() => {
+    const handleEvents = (event: SimulationEvent) => {
+      if (event.public || event.type === SimulationEventType.Notify) {
+        localEvents.unshift(event);
+        setLocalEvents(localEvents.slice(0, 100));
+      }
+    };
+    Simulation.subscribeEvents(handleEvents);
+    return () => Simulation.unsubscribeEvents(handleEvents);
+  }, [localEvents]);
 
-  return sr.state.fastForward ? <div>Loading...</div> : <div className={'scrollable'} style={{flex: 1}}>
-    {sr.state.notifications?.map((n, i) => <Notification key={`n_${i}`} n={n} p={typeof n.content !== 'string' ? (n.content.person ? sr.state.people.all[n.content.person] : undefined) : undefined}/>)}
+  // return <div id={'sim-notes'} style={{display: 'flex', flexFlow: 'column-reverse'}}/>; // really
+  return Simulation.scratch.speed > MINUTE ? <div>Loading...</div> : <div className={'scrollable'} style={{flex: 1}}>
+    {localEvents.map(n => <Notification key={`n_${n.id}`} n={n}/>)}
   </div>;
 };
 

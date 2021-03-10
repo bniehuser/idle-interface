@@ -1,12 +1,12 @@
 import React, { FC, memo } from 'react';
-import useTimedRefresh from '../../../hooks/useTimedRefresh';
+import { useMomentary } from '../../../hooks/simulation';
 import { Person } from '../../../simulation/entity/person';
 
 type PCProps = { person: Person, stateData?: any };
 
 export const PersonCard: FC<PCProps> = ({person, stateData}) => {
 
-  useTimedRefresh(200);
+  useMomentary(undefined, true);
 
   return <div className={'interface'} style={{display: 'flex', flexDirection: 'row', pointerEvents: 'none'}}>
     <div style={{display: 'flex', flexDirection: 'column', marginRight: '.5rem'}}>

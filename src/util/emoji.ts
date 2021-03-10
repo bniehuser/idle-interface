@@ -31,6 +31,7 @@ export const emojis = {
     'horse': 0x1F40E,
     'horse-head': 0x1F434,
     'beating-heart': 0x1F493,
+    'luck': 0x1F340,
 };
 export type EmojiKey = keyof typeof emojis;
 export const emojiVariants = {
@@ -50,6 +51,7 @@ const defaultVariant = (emoji: EmojiKey) => {
 
 export const htmlEmoji = (emoji: EmojiKey, variant?: EmojiVariant) => {
     let doVariant = variant || defaultVariant(emoji);
+    if (!emojis[emoji]) return '';
     return doVariant
         ? String.fromCodePoint(emojis[emoji], emojiVariants[doVariant])
         : String.fromCodePoint(emojis[emoji]);

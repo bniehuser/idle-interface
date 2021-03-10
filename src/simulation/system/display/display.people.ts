@@ -1,4 +1,4 @@
-import { Person } from '../../entity/person/person.state';
+import { Person } from '../../entity/person';
 
 // size of a single person image display in atlas, fractional to whole for uv purposes
 const PERSON_TEX_SIZE: [number, number] = [0, 0];

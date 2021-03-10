@@ -1,7 +1,7 @@
 import React, { FC, useEffect } from 'react';
 import TileSet from '../../../../public/img/TileSet.png';
 import Simulation from '../../../simulation';
-import { createMap, makeMapTexture } from '../../../simulation/entity/map';
+import { createMap, makeMapTexture, MapPoint } from '../../../simulation/entity/map';
 import {
   getMoonColor,
   getMoonDir,
@@ -9,6 +9,7 @@ import {
   getSunDir,
   setCelestialTime,
 } from '../../../simulation/system/celestial';
+import { getPersonPosArray } from '../../../simulation/system/display/display.people';
 import vsSource from '../../../simulation/system/display/shaders/simpleOrtho.vert';
 import fsSource from '../../../simulation/system/display/shaders/tilemap.frag';
 import {
@@ -27,7 +28,10 @@ export const Map: FC = () => {
   // init
   useEffect(() => {
     // load our simulation data immediately
-    const map = createMap({width: 512, height: 512});
+    if (!Simulation.state.map) {
+      console.log('why we no see state map?');
+    }
+    const map = Simulation.state.map || createMap({width: 512, height: 512});
     const pixArray = makeMapTexture(map);
 
     // do the stuff before we start
@@ -193,12 +197,38 @@ export const Map: FC = () => {
       fpsCont.innerText = fps + '';
     };
 
+    const inBox = (p: MapPoint, box: [number, number, number, number]) => p.x >= box[0] && p.y >= box[1] && p.x <= box[2] && p.y <= box[3];
+
+    const worldBox = (): [number, number, number, number] => {
+      const lx = (-offset[0] * scale) / map.tileSize - 1; // minus one tile for things overlapping screen
+      const ly = (-offset[1] * scale) / map.tileSize - 1;
+      const hx = lx + (gl.canvas.width * scale) / map.tileSize + 1;
+      const hy = ly + (gl.canvas.height * scale) / map.tileSize + 1;
+      return [lx, ly, hx, hy];
+    };
+
+    // this absolutely does not belong here
+    const getPeopleArray = () => {
+      const vertices: number[] = [];
+      const box = worldBox();
+      // if (!((performance.now() | 0) % 10)) console.log(box);
+      Simulation.state.people.living.forEach(id => {
+        const p = Simulation.state.people.all[id];
+        if (inBox(p.location, box)) {
+          vertices.push(...getPersonPosArray(p));
+        }
+      });
+      // if (!((performance.now() | 0) % 10)) console.log(vertices);
+      // console.log('visible people:', vertices.length / 24);
+    };
+
     // per frame
     const experiment = (t: number) => {
       if (Simulation.state.DEBUG) {
         updateFps();
       }
       updateOffs();
+      getPeopleArray();
       render(t);
     };
 

@@ -2,10 +2,10 @@ import { HOUR, legibleTimeDiff } from '../../../util/const/time';
 import { randArrayItem } from '../../../util/data-access';
 import { mapDistance } from '../../entity/map';
 import Simulation from '../../index';
+import { getPersonScratch } from '../../scratch';
 import { SimulationEventType } from '../event';
 import { Defer } from './defer';
 import { PersonNode, RandomChance, Sequence } from './tree';
-import { getPersonScratch } from '../../scratch';
 
 export const FIND_PEOPLE_DISTANCE = 10;
 
@@ -60,14 +60,14 @@ export const FinishInteraction: PersonNode = id => {
   let ip = statePerson(id);
   let tp = statePerson(i.target);
   if (s.initiated) {
-    const s = ip;
+    const x = ip;
     ip = tp;
-    tp = s;
+    tp = x;
   }
   Simulation.event({
     type: SimulationEventType.Notify,
     sub: 'speech',
-    data: `P(${ip.id}) talked to P(${tp.id}) for ${legibleTimeDiff(t() - i.interactionInitiated)}`,
+    data: `P{${ip.id}} talked to P{${tp.id}} for ${legibleTimeDiff(t() - i.interactionInitiated)}`,
   });
   s.initiated = i.initiated = false;
   s.interactionInitiated = i.interactionInitiated = 0;

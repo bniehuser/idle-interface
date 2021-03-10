@@ -12,6 +12,14 @@
   &:before { font-size:100%; width:auto; padding-right:.25em; }
 }
 
+.posVal {
+  color: $main-green;
+}
+
+.negVal {
+  color: $main-red;
+}
+
 .money { @include icon-before('\01F4B0'); }
 .offense { @include icon-before('🗡️️', '\01F5E1'); }
 .defense { @include icon-before('\01F6E1\FE0F', '\01F6E1'); }

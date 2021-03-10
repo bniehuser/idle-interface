@@ -12,6 +12,8 @@ export const IsBusy: PersonNode = id => person(id).ai.decision === 'busy';
 export const KillPerson = (reason: string): PersonNode => id => {
   // just do it here?  can run function to accomplish it, or can let event drive it but keep that code elsewhere
   // need to determine desired practice for all behaviors
-  Simulation.event({type: SimulationEventType.Person, sub: 'killPerson', entityId: id, data: reason, public: false});
+  Simulation.state.people.living = Simulation.state.people.living.filter(i => i !== id);
+  Simulation.state.people.dead.push(id);
+  Simulation.event({type: SimulationEventType.Person, sub: 'coffin', entityId: id, data: `P{${id}) ${reason}`, public: true});
   return true;
 };

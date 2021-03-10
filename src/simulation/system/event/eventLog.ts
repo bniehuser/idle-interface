@@ -25,7 +25,7 @@ const getEventExpiration = (evt: Partial<SimulationEvent>): number => {
 
 export const addSimulationEvent = (log: SimulationEventLog, evt: Partial<SimulationEvent>): SimulationEvent => {
   log.id++;
-  const e = createEvent({id: log.id, expires: getEventExpiration(evt), ...evt});
+  const e = createEvent({expires: getEventExpiration(evt), ...evt, id: log.id});
   log.current.push(e);
   return e;
 };

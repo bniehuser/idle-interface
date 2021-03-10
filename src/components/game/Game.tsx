@@ -1,16 +1,30 @@
 import CSS from 'csstype';
-import React, { FC, memo, useEffect } from 'react';
-import { useGameDispatch } from '../../context/game';
+import React, { FC, memo, useEffect, useState } from 'react';
 import Simulation from '../../simulation';
+import { createMap } from '../../simulation/entity/map';
+import { addPerson, createRandomPerson } from '../../simulation/entity/person';
 import { dailyAI, hourlyAI, momentaryAI } from '../../simulation/system';
+import { SimulationEventType } from '../../simulation/system/event';
 import { DAY, HOUR, MINUTE } from '../../util/const/time';
 import { Map } from './display/Map';
 import Clock from './hud/Clock';
-import { addPerson, createRandomPerson } from '../../simulation/entity/person';
 
 const Game: FC<{ style: CSS.Properties }> = ({style}) => {
-  const dispatch = useGameDispatch();
+  const [initialized, setInitialized] = useState(false);
   useEffect(() => {
+
+    // i feel like there should be a smarter way to do this initialization stuff, probably in a 'load()' function
+    const numPeople = 500;
+    const width = 512;
+    const height = 512;
+
+    Simulation.state.map = createMap({width, height});
+    Simulation.event({type: SimulationEventType.Notify, data: `Created ${width} x ${height} map.`});
+
+    Array.from(Array(numPeople), () => {
+      addPerson(Simulation.state.people, createRandomPerson(Simulation.state));
+    });
+    Simulation.event({type: SimulationEventType.Notify, data: `Loaded ${numPeople} random people.`});
 
     // here we're just managing some things up front that we know should be set for the life of the simulation
     Simulation.init({
@@ -19,19 +33,12 @@ const Game: FC<{ style: CSS.Properties }> = ({style}) => {
         [HOUR]: [hourlyAI],
         [DAY]: [dailyAI],
       },
-      _test: 'did we merge?',
     });
+    Simulation.event({type: SimulationEventType.Notify, data: `Simulation Initialized.`});
 
-    Array.from(Array(100), () => {
-      addPerson(Simulation.state.people, createRandomPerson(Simulation.state));
-      console.log('adding people to simulation?', Simulation.state.people.id);
-    });
-    // Simulation.start();
-
-    dispatch({type: 'addRandomPeople', num: 500});
-    dispatch({type: 'notify', key: 'gear', content: 'Game Initialized.'});
+    setInitialized(true);
   }, []);
-  return <div style={{...style, flex: '1 1 0%'}}>
+  return !initialized ? null : <div style={{...style, flex: '1 1 0%'}}>
     <Map/>
     <Clock/>
   </div>;
