@@ -2,26 +2,26 @@ import { HOUR, legibleTimeDiff } from '../../../util/const/time';
 import { randArrayItem } from '../../../util/data-access';
 import { mapDistance } from '../../entity/map';
 import Simulation from '../../index';
-import { SimulationEventType } from '../../state';
+import { SimulationEventType } from '../event';
 import { Defer } from './defer';
 import { PersonNode, RandomChance, Sequence } from './tree';
-import { bbPerson } from './util/blackboard';
-
-const {scratch, state} = Simulation; // do these retain data?
 
 export const FIND_PEOPLE_DISTANCE = 10;
 
-export const FindPeople: PersonNode = id => {
-  const bp = bbPerson(id, scratch);
+const scratchPerson = (id: number) => Simulation.scratch.people[id];
+const statePerson = (id: number) => Simulation.state.people.all[id];
+const t = () => Simulation.scratch.processTime;
 
-  if (scratch.processTime - (scratch.people[id]?.near?.lastCheck || 0) > scratch.speed) {
-    const ppl = state.people.living;
-    const p = state.people.all[id];
+export const FindPeople: PersonNode = id => {
+  const bp = scratchPerson(id);
+
+  if (t() - (scratchPerson(id)?.near?.lastCheck || 0) > Simulation.scratch.speed) {
+    const p = statePerson(id);
     bp.near = {
-      lastCheck: scratch.processTime,
-      people: ppl.reduce((a, c) => {
+      lastCheck: t(),
+      people: Simulation.state.people.living.reduce((a, c) => {
         if (c !== id) {
-          const np = state.people.all[c];
+          const np = statePerson(c);
           const d = mapDistance(p.location, np.location);
           if (d < FIND_PEOPLE_DISTANCE) {
             a[c] = d;
@@ -35,37 +35,41 @@ export const FindPeople: PersonNode = id => {
 };
 
 export const TargetForInteraction: PersonNode = id => {
-  const b = bbPerson(id);
+  const b = scratchPerson(id);
   b.target = parseInt(randArrayItem(Object.keys(b.near.people)), 10);
   return true;
 };
 
 export const BeginInteraction: PersonNode = id => {
-  const i = bbPerson(id);
-  const t = bbPerson(i.target);
-  i.initiated = true;
-  t.interacting = i.interacting = true;
-  t.interactionInitiated = i.interactionInitiated = scratch.processTime;
-  t.target = id;
+  const i = scratchPerson(id);
+  const s = scratchPerson(i.target);
+  s.initiated = true;
+  s.interacting = i.interacting = true;
+  s.interactionInitiated = i.interactionInitiated = t();
+  s.target = id;
   return true;
 };
 
-export const IsInteracting: PersonNode = id => bbPerson(id).interacting;
+export const IsInteracting: PersonNode = id => scratchPerson(id).interacting;
 
 export const FinishInteraction: PersonNode = id => {
-  const i = bbPerson(id);
-  const t = bbPerson(i.target);
-  t.interacting = i.interacting = false;
-  let ip = state.people.all[id];
-  let tp = state.people.all[i.target];
-  if (t.initiated) {
+  const i = scratchPerson(id);
+  const s = scratchPerson(i.target);
+  s.interacting = i.interacting = false;
+  let ip = statePerson(id);
+  let tp = statePerson(i.target);
+  if (s.initiated) {
     const s = ip;
     ip = tp;
     tp = s;
   }
-  Simulation.event(SimulationEventType.Notify, 'speech', `${ip.avatar}${ip.name.given} ${ip.name.family} talked to ${tp.avatar}${tp.name.given} ${tp.name.family} for ${legibleTimeDiff(scratch.processTime - i.interactionInitiated)}`);
-  t.initiated = i.initiated = false;
-  t.interactionInitiated = i.interactionInitiated = 0;
+  Simulation.event({
+    type: SimulationEventType.Notify,
+    sub: 'speech',
+    data: `P(${ip.id}) talked to P(${tp.id}) for ${legibleTimeDiff(t() - i.interactionInitiated)}`,
+  });
+  s.initiated = i.initiated = false;
+  s.interactionInitiated = i.interactionInitiated = 0;
   return true;
 };
 

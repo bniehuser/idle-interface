@@ -1,18 +1,23 @@
 /** this _should_ be the primary simulation loop */
-import { ALWAYS, DAY, HOUR } from '../util/const/time';
+import { ALWAYS, DAY } from '../util/const/time';
 import { mergeDeep } from '../util/data-access';
 import { createSimulationSettings } from './defaults';
-import { cullEvents } from './event';
 import { createSimulationScratch, SimulationScratch } from './scratch';
 import {
   createSimulationState,
   SimulationEventSubscriber,
-  SimulationEventSubtype,
-  SimulationEventType,
   SimulationSettings,
   SimulationState,
   SimulationSubscriber,
 } from './state';
+import {
+  addSimulationEvent,
+  expireEventLog,
+  SimulationEvent,
+  SimulationEventSubtype,
+  SimulationEventType,
+} from './system/event';
+import { createWindowListeners, disableInput, enableInput } from './system/input';
 import { frequencyComparators, SIMULATION_FREQUENCIES, SimulationFrequency } from './time';
 
 let FRAME: number|undefined;
@@ -21,15 +26,14 @@ const MAX_PROCESS_TIME = 1000 / 120; // half a 60fps frame
 const SETTINGS: SimulationSettings = createSimulationSettings();
 const SCRATCH: SimulationScratch = createSimulationScratch();
 const STATE: SimulationState = createSimulationState();
+const WINDOW_LISTENERS = createWindowListeners(SCRATCH.input);
 
 const init = (settings: Partial<SimulationSettings>) => {
-  console.log('NOW INIT:', SETTINGS.subscribers[HOUR], SETTINGS.subscribers[HOUR]?.length, settings.subscribers?.[HOUR], settings.subscribers?.[HOUR]?.length);
   // override settings
   mergeDeep(SETTINGS, settings);
-  console.log('NOW MERGED:', SETTINGS.subscribers[HOUR], SETTINGS.subscribers[HOUR]?.length);
   // set up default (internal) subscribers
-  subscribe(t => cullEvents(t), DAY);
-  subscribeEvents((t, s, d) => console.debug(t, s, d), SimulationEventType.Error);
+  subscribe(t => expireEventLog(STATE.events, t), DAY);
+  subscribeEvents(evt => console.debug(evt), SimulationEventType.Error);
   // set initialized
   SETTINGS.initialized = true;
 };
@@ -59,58 +63,22 @@ const main = (time: number) => {
   SCRATCH.lastTime = time; // totally unnecessary for our purposes, until we start messing with performance
 };
 
-type HandlerStore = {[k: string]: EventListener};
-
-const WINDOW_LISTENERS: HandlerStore = {
-  'mousedown': () => { SCRATCH.input.mouse.down = true; },
-  'mouseup': () => { SCRATCH.input.mouse.down = false; },
-  'mousemove': evt => {
-    const e = evt as MouseEvent;
-    SCRATCH.input.mouse.x = e.offsetX;
-    SCRATCH.input.mouse.y = e.offsetY;
-  },
-  'wheel': evt => {
-    const e = evt as WheelEvent;
-    console.log('settingScroll', normalizeWheelDelta(e));
-    SCRATCH.input.mouse.scroll = normalizeWheelDelta(e);
-    console.log('wheel event');
-  },
-};
-
-const normalizeWheelDelta = (wheelEvent: WheelEvent): number => {
-  let delta = 0;
-  const wheelDelta = ('wheelDelta' in wheelEvent) ? wheelEvent['wheelDelta'] : undefined;
-  const deltaY = wheelEvent.deltaY;
-  // CHROME WIN/MAC | SAFARI 7 MAC | OPERA WIN/MAC | EDGE
-  if (wheelDelta) {
-    delta = -wheelDelta / 120;
-  }
-  // FIREFOX WIN / MAC | IE
-  if (deltaY) {
-    deltaY > 0 ? delta = 1 : delta = -1;
-  }
-  return delta;
-};
-
-export const enableInput = () => Object.keys(WINDOW_LISTENERS).forEach(k => window.addEventListener(k, WINDOW_LISTENERS[k]));
-export const disableInput = () => Object.keys(WINDOW_LISTENERS).forEach(k => window.removeEventListener(k, WINDOW_LISTENERS[k]));
-
 const start = () => {
   if (!FRAME) {
-    enableInput();
+    enableInput(WINDOW_LISTENERS);
     FRAME = requestAnimationFrame(main);
   } else {
-    event(SimulationEventType.Error, 'simulationStart', 'Simulation already started!');
+    event({type: SimulationEventType.Error, sub: 'simulationStart', data: 'Simulation already started!'});
   }
 };
 
 const stop = () => {
   if (FRAME) {
     cancelAnimationFrame(FRAME);
-    disableInput();
+    disableInput(WINDOW_LISTENERS);
     FRAME = undefined;
   } else {
-    event(SimulationEventType.Error, 'simulationStop', 'Simulation not running!');
+    event({type: SimulationEventType.Error, sub: 'simulationStop', data: 'Simulation not running!'});
   }
 };
 
@@ -145,15 +113,34 @@ const unsubscribeEvents = (subscriber: SimulationEventSubscriber, type: Simulati
   };
 };
 
-export type SimulationEventParams = [type: SimulationEventType, sub: SimulationEventSubtype, data: string|any];
-
-const event = (...args: SimulationEventParams) => {
-  SETTINGS.eventSubscribers['*']?.['*']?.forEach(s => s(...args));
-  SETTINGS.eventSubscribers[args[0]]?.['*']?.forEach(s => s(...args));
-  SETTINGS.eventSubscribers[args[0]]?.[args[1]]?.forEach(s => s(...args));
+const event = (init: Partial<SimulationEvent>) => {
+  const evt = addSimulationEvent(STATE.events, {at: SCRATCH.processTime, ...init});
+  SETTINGS.eventSubscribers['*']?.['*']?.forEach(s => s(evt));
+  SETTINGS.eventSubscribers[evt.type]?.['*']?.forEach(s => s(evt));
+  if (evt.sub !== undefined) {
+    SETTINGS.eventSubscribers[evt.type]?.[evt.sub]?.forEach(s => s(evt));
+  }
 };
 
-export type SimulationEngine = typeof Simulation;
-const Simulation = { start, stop, init, subscribe, unsubscribe, subscribeEvents, unsubscribeEvents, event, scratch: SCRATCH, state: STATE, settings: SETTINGS };
+// this is the outside world's interface to the Simulation -- nothing that isn't an internal system should touch it outside this interface
+
+// it's fairly pure, but there are tons of operations we might want to perform for data management as well
+// but those should all take place in a context where we're already including the sim, so all operations should take the appropriate
+// state or scratch as input, so that they're completely agnostic from a running sim
+
+// exceptions being sim systems -- these all assume a running sim for speed
+const Simulation = {
+  scratch: SCRATCH,
+  state: STATE,
+  settings: SETTINGS,
+  start,
+  stop,
+  init,
+  subscribe,
+  unsubscribe,
+  subscribeEvents,
+  unsubscribeEvents,
+  event,
+};
 
 export default Simulation;

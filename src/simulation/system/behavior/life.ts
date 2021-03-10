@@ -1,6 +1,6 @@
 import moment from 'moment';
 import Simulation from '../../index';
-import { SimulationEventType } from '../../state';
+import { SimulationEventType } from '../event';
 import { IsOld, IsVeryOld, KillPerson } from './person';
 import { Notify } from './system';
 import { PersonNode, RandomChance, Selector, Sequence } from './tree';
@@ -24,7 +24,7 @@ export const Nap: PersonNode = () => false;
 export const Birthday: PersonNode = id => {
   const p = Simulation.state.people.all[id];
   if (p && moment(p.birthday).dayOfYear() === moment(Simulation.scratch.processTime).dayOfYear()) {
-    Simulation.event(SimulationEventType.Person, 'birthday', id);
+    Simulation.event({type: SimulationEventType.Person, sub: 'birthday', entityId: id});
     return true;
   }
   return false;

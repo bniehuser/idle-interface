@@ -1,253 +1,217 @@
-import React, { FC, memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { FC, useEffect } from 'react';
 import TileSet from '../../../../public/img/TileSet.png';
-import { useGameBlackboard, useGameDispatch, useGameStateRef } from '../../../context/game';
-import { createMap, MapDisplay, renderMap } from '../../../simulation/entity/map';
-import { Person } from '../../../simulation/entity/person';
-import { htmlEmoji } from '../../../util/emoji';
-import { OS } from '../../../util/platform';
-import PersonCard from '../interface/PersonCard';
+import Simulation from '../../../simulation';
+import { createMap, makeMapTexture } from '../../../simulation/entity/map';
+import {
+  getMoonColor,
+  getMoonDir,
+  getSunColor,
+  getSunDir,
+  setCelestialTime,
+} from '../../../simulation/system/celestial';
+import vsSource from '../../../simulation/system/display/shaders/simpleOrtho.vert';
+import fsSource from '../../../simulation/system/display/shaders/tilemap.frag';
+import {
+  createProgram,
+  createSampler,
+  createShader,
+  fetchGlContext,
+  resizeGl,
+  setTexture,
+  textureFromImg,
+  textureFromPixArray,
+} from '../../../simulation/system/display/webgl';
 
-// TODO: get all this sprite drawing nonsense out of here, map should purely handle dom setup and interaction
+export const Map: FC = () => {
 
-const bigIcons = [
-  htmlEmoji('baby', 'light'),
-  htmlEmoji('baby', 'med-light'),
-  htmlEmoji('baby', 'med'),
-  htmlEmoji('baby', 'med-dark'),
-  htmlEmoji('baby', 'dark'),
-  htmlEmoji('boy', 'light'),
-  htmlEmoji('boy', 'med-light'),
-  htmlEmoji('boy', 'med'),
-  htmlEmoji('boy', 'med-dark'),
-  htmlEmoji('boy', 'dark'),
-  htmlEmoji('girl', 'light'),
-  htmlEmoji('girl', 'med-light'),
-  htmlEmoji('girl', 'med'),
-  htmlEmoji('girl', 'med-dark'),
-  htmlEmoji('girl', 'dark'),
-  htmlEmoji('man', 'light'),
-  htmlEmoji('man', 'med-light'),
-  htmlEmoji('man', 'med'),
-  htmlEmoji('man', 'med-dark'),
-  htmlEmoji('man', 'dark'),
-  htmlEmoji('woman', 'light'),
-  htmlEmoji('woman', 'med-light'),
-  htmlEmoji('woman', 'med'),
-  htmlEmoji('woman', 'med-dark'),
-  htmlEmoji('woman', 'dark'),
-  htmlEmoji('old-man', 'light'),
-  htmlEmoji('old-man', 'med-light'),
-  htmlEmoji('old-man', 'med'),
-  htmlEmoji('old-man', 'med-dark'),
-  htmlEmoji('old-man', 'dark'),
-  htmlEmoji('old-woman', 'light'),
-  htmlEmoji('old-woman', 'med-light'),
-  htmlEmoji('old-woman', 'med'),
-  htmlEmoji('old-woman', 'med-dark'),
-  htmlEmoji('old-woman', 'dark'),
-];
-const smallIcons = [
-  htmlEmoji('speech'),
-  htmlEmoji('yell'),
-  htmlEmoji('thought'),
-];
-
-type SpriteDimensions = {x: number, y: number, h: number, w: number};
-type SpriteInfo = {[k: string]: SpriteDimensions};
-
-const spriteInfo: SpriteInfo = {
-  ...bigIcons.reduce((a, c, i) => {
-    a[c] = {x: i * 32, y: 0, h: 32, w: 32};
-    return a;
-  }, {} as SpriteInfo),
-  ...smallIcons.reduce((a, c, i) => {
-    a[c] = {x: i * 16, y: 32, h: 16, w: 16};
-    return a;
-  }, {} as SpriteInfo),
-};
-
-const drawAvatar = (ctx: CanvasRenderingContext2D, x: number, y: number, avatar: string, action?: string) => {
-  const a = spriteInfo[avatar];
-  ctx.drawImage(spriteBufferCanvas, a.x, a.y, a.w, a.h, x, y, a.w, a.h);
-  if (action) {
-    const i = spriteInfo[action];
-    ctx.drawImage(spriteBufferCanvas, i.x, i.y, i.w, i.h, x + 25, y - 8, i.w, i.h);
-  }
-  // console.log('should draw', avatar, 'at', [x, y]);
-};
-
-const spriteBufferCanvas = document.createElement('canvas');
-spriteBufferCanvas.height = 48;
-spriteBufferCanvas.width = Math.max(bigIcons.length * 32, smallIcons.length * 16);
-
-const initSpriteBuffer = () => {
-  const ctx = spriteBufferCanvas.getContext('2d');
-  if (ctx) {
-    Object.keys(spriteInfo).forEach(k => {
-      const s = spriteInfo[k];
-      // TODO: extrapolate a set of emoji characteristics by OS in the emoji util
-      const emojiHeight = OS === 'Windows' ? 25 : 32;
-      const h = (s.h === 16 ? 14 : emojiHeight);
-      ctx.font = h + 'px sans-serif';
-      ctx.fillText(k, s.x, s.y + h - 1); // fonts are baseline, so print at bottom
-    });
-  } else {
-    console.error('NO SPRITE CANVAS CONTEXT');
-  }
-};
-
-const Map: FC = () => {
-  const sr = useGameStateRef();
-  const d = useGameDispatch();
-  const bb = useGameBlackboard();
-  const ref = useRef<HTMLDivElement>(null);
-  const [cd, setD] = useState({w: 0, h: 0});
-  const [hoverData, setHoverData] = useState<{ person: Person, stateData?: any }|undefined>(undefined);
-  const [mousePos, setMousePos] = useState<[number, number]>([0, 0]);
-  const [mapDisplay, setMapDisplay] = useState<MapDisplay|undefined>(undefined);
-  const [mapOffset, setMapOffset] = useState<[number, number]>([0, 0]);
-  const [dragOffset, setDragOffset] = useState<[number, number]>([0, 0]);
-  // const [clientMousePos, setClientMousePos] = useState<[number, number]>([0, 0]);
-  const [moving, setMoving] = useState<boolean>(false);
-  const [tileLoaded, setTileLoaded] = useState<boolean>(false);
-  const [tileSet] = useState<HTMLImageElement>(document.createElement('img'));
-
+  // init
   useEffect(() => {
-    // we'll be killing this shortly
-    document.addEventListener('keydown', e => {
-      d({type: 'notify', content: `pressed the ${e.code} (${e.key}) key`});
-    });
+    // load our simulation data immediately
+    const map = createMap({width: 512, height: 512});
+    const pixArray = makeMapTexture(map);
 
-    // world's saddest asset loader
-    tileSet.src = TileSet;
-    tileSet.onload = () => {
-      setTileLoaded(true);
-    };
-    initSpriteBuffer();
-  }, []);
+    // do the stuff before we start
+    const gl = fetchGlContext('experiment-canvas');
 
-  useEffect(() => {
-    if (tileLoaded) {
-      // to be more react-y should these be handled with refs?  seems to work as-is
-      const mapCanvas = document.getElementById('map-canvas') as HTMLCanvasElement;
-      const spriteCanvas = document.getElementById('sprite-canvas') as HTMLCanvasElement;
+    const prg = createProgram(
+      gl,
+      createShader(gl, gl.VERTEX_SHADER, vsSource),
+      createShader(gl, gl.FRAGMENT_SHADER, fsSource),
+    );
 
-      const newD = {w: spriteCanvas.offsetWidth, h: spriteCanvas.offsetHeight};
-      setD(newD);
+    // this part starts to become dependent on the shader code, as it needs the attribs/uniforms
+    // just the one attribute -- the screen rect to render
+    const posLoc = gl.getAttribLocation(prg, 'position');
+    // TODO: simplify uniform mapping and updates (plus, we absolutely don't need all these and they slow the shader down)
+    const timeLoc = gl.getUniformLocation(prg, 'u_time');
+    const offsLoc = gl.getUniformLocation(prg, 'u_offs');
+    const scaleLoc = gl.getUniformLocation(prg, 'u_scale');
+    const sunDirLoc = gl.getUniformLocation(prg, 'u_sunDirection');
+    const sunColorLoc = gl.getUniformLocation(prg, 'u_sunColor');
+    const moonDirLoc = gl.getUniformLocation(prg, 'u_moonDirection');
+    const moonColorLoc = gl.getUniformLocation(prg, 'u_moonColor');
+    const viewLoc = gl.getUniformLocation(prg, 'u_viewport');
+    const mapLoc = gl.getUniformLocation(prg, 'mapPix');
+    const tileLoc = gl.getUniformLocation(prg, 'tilePix');
 
-      const mapCtx = mapCanvas.getContext('2d', {alpha: false});
-      if (mapCanvas && mapCtx && spriteCanvas) {
-        const map = sr.state.map || (() => {
-          const m = createMap({});
-          d({type: 'notify', content: `finished building map: (${m.width},${m.height})`});
-          return m;
-        })();
-        d({type: 'setMap', map});
-        setMapDisplay({
-          map,
-          canvas: mapCanvas,
-          spriteCanvas: spriteCanvas,
-          spriteBuffer: spriteBufferCanvas,
-          ctx: mapCtx,
-          tileImg: tileSet,
-          spriteImg: spriteCanvas,
-        });
-      } else {
-        throw new Error('something is horribly wrong, could not find map or sprite canvas');
-      }
-    }
-  }, [tileLoaded, sr.state.map]);
+    // create our dead-simple position buffer for a single quad
+    const mapVAO = gl.createVertexArray();
+    if (!mapVAO) throw new Error('could not create vertex array');
+    gl.bindVertexArray(mapVAO);
+    const mapPos = new Float32Array([
+      // x  y  u  v
+      -1, -1, 0, 1,
+      1, -1, 1, 1,
+      1,  1, 1, 0,
 
-  const doHoverId = useCallback((id: number): boolean => { setHoverData({ person: sr.state.people.all[id], stateData: bb.people[id] }); return true; }, []);
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDragOffset([e.pageX, e.pageY]);
-    setMoving(true);
-    // console.log('how many times do we run?', [e.pageX, e.pageY]);
-    return false;
-  }, []);
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    setMousePos([e.clientX, e.clientY]);
-    if (moving) {
-      const offsetX = mapOffset[0] + (e.pageX - dragOffset[0]);
-      const offsetY = mapOffset[1] + (e.pageY - dragOffset[1]);
-      // setClientMousePos([e.pageX, e.pageY]);
-      if (mapDisplay) {
-        requestAnimationFrame(() => {
-          renderMap(mapDisplay, offsetX, offsetY);
-          renderSprites(mapDisplay, offsetX, offsetY);
-        });
-      }
-    } else {
-      const rect = (document.getElementById('sprite-canvas') as HTMLCanvasElement).getBoundingClientRect();
-      const posX = Math.floor((e.clientX - rect.left - mapOffset[0]) / 32);
-      const posY = Math.floor((e.clientY - rect.top - mapOffset[1]) / 32);
-      setMousePos([e.clientX - rect.left, e.clientY - rect.top]);
-      // this should really be integrated elsewhere -- scanning all living people's data on mousemove is expensive
-      const r = sr.state;
-      if (!r.people.living.some(id => (r.people.all[id].location.x === posX && r.people.all[id].location.y === posY) ? doHoverId(id) : false)) {
-        setHoverData(undefined);
-      }
-    }
-  }, [mapOffset, dragOffset]);
-  const onMouseUp = useCallback((e: React.MouseEvent) => {
-    setMoving(false);
-    setMapOffset([mapOffset[0] + (e.pageX - dragOffset[0]), mapOffset[1] + (e.pageY - dragOffset[1])]);
-  }, [dragOffset]);
+      -1, -1, 0, 1,
+      1,  1, 1, 0,
+      -1,  1, 0, 0,
+    ]);
+    const posBuf = gl.createBuffer();
+    if (!posBuf) throw new Error('could not create buffer');
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, mapPos, gl.STATIC_DRAW);
 
-  const renderSprites = useCallback((mapDisplay: MapDisplay, offsetX: number, offsetY: number) => {
-    // bconsole.log('s.gameTime', s.gameTime);
-    const ctx = mapDisplay.spriteCanvas.getContext('2d');
-    const {width: w, height: h} = mapDisplay.spriteCanvas;
-    if (ctx) {
-      ctx.clearRect(0, 0, w, h);
-      const [lx, bx, ly, by] = [
-        Math.floor(-offsetX / 32),
-        Math.ceil((w - offsetX) / 32),
-        Math.floor(-offsetY / 32),
-        Math.ceil((h - offsetY) / 32),
-      ];
-      Object.values(sr.state.people.all).forEach(p => {
-        const {x, y} = p.location;
-        if (x >= lx && x <= bx && y >= ly && y <= by) {
-          drawAvatar(ctx, x * 32 + offsetX, y * 32 + offsetY, p.avatar, bb.people[p.id]?.interacting ? htmlEmoji('speech') : undefined);
+    // slap it in the attribute
+    gl.enableVertexAttribArray(posLoc);
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+    gl.vertexAttribPointer(
+      posLoc,
+      4,
+      gl.FLOAT,
+      false,
+      0,
+      0,
+    );
+
+    const pixTex = textureFromPixArray(gl, pixArray, map.width, map.height);
+    const tileImg = new Image();
+    tileImg.src = TileSet;
+    const tileTex = textureFromImg(gl, tileImg, () => render(Simulation.state.gameTime));
+    const nearestSampler = createSampler(gl, 'nearest');
+
+    // this could be done per-frame, but we're just using the one, so set and forget
+    gl.useProgram(prg);
+    // one-and-done texture load -- if using multiple programs or reassigning tex this would need done in render loop
+    setTexture(gl, gl.TEXTURE0, pixTex, nearestSampler);
+    setTexture(gl, gl.TEXTURE1, tileTex);
+
+    // set initial sun/moon pos/color
+    setCelestialTime(Simulation.scratch.processTime);
+    gl.uniform3fv(sunColorLoc, getSunColor());
+    gl.uniform3fv(sunDirLoc, getSunDir());
+    gl.uniform3fv(moonColorLoc, getMoonColor());
+    gl.uniform3fv(moonDirLoc, getMoonDir());
+
+    // input handling
+    // TODO: maybe move this code to simulation display system too? seems highly dependent on map processing
+    let lastMouse: [number, number]|undefined = undefined;
+    let offset: [number, number] = [0, 0];
+    let scale: number = 1;
+    const updateOffs = () => {
+      const { mouse } = Simulation.scratch.input;
+      if (mouse.down) {
+        if (lastMouse) {
+          const mouseDelta = [mouse.x - lastMouse[0], mouse.y - lastMouse[1]];
+          offset = [offset[0] + mouseDelta[0], offset[1] + mouseDelta[1]];
         }
-      });
-    }
+        lastMouse = [mouse.x, mouse.y];
+      } else {
+        // this seems wasteful.  setting undefined every frame probably isn't expensive, but it feels wrong.
+        lastMouse = undefined;
+      }
+      if (mouse.scroll !== 0) {
+        const oldscale = scale;
+        const scaleDiff = mouse.scroll * .09;
+        scale = Math.max(.1, Math.min(10, scale * (1 + scaleDiff)));
+        const sF = scale / oldscale;
+        if (oldscale !== scale) {
+          // this has GOT to be SLOW AS HELL
+          const frame = document.getElementById('experiment-display');
+          if (frame) {
+            // TODO: this is TOTALLY FLIPPING WRONG, and slow to boot
+            const br = frame.getBoundingClientRect();
+            const inX = (mouse.x - br.x);
+            const inY = (mouse.y - br.y);
+            let totx = offset[0] + inX;
+            let toty = offset[1] + inY;
+            console.log('old offset:', scale.toFixed(3), sF.toFixed(3), offset);
+            offset[0] = totx * sF - inX / sF; // / sF;
+            offset[1] = toty * sF - inY / sF; // / sF;
+            console.log('new offset:', scale.toFixed(3), sF.toFixed(3), offset);
+          }
+        }
+        mouse.scroll = 0; // poor man's reset
+        console.log('setting scale', scale);
+      }
+    };
+
+    // prep screen
+    resizeGl('experiment-display', gl);
+
+    // do the actual rendering
+    const render = (t: number) => {
+      resizeGl('experiment-display', gl); // this actually makes rendering FASTER...?!? layout runs during frame cycle instead of over a larger span outside it
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      // note: t is in simulation time; whatever the current date is in the simulation
+      gl.uniform1f(timeLoc, t / 1000000);
+      gl.uniform2f(offsLoc, offset[0], offset[1]);
+      gl.uniform1f(scaleLoc, scale);
+      gl.uniform2f(viewLoc, gl.canvas.width, gl.canvas.height);
+
+      // sun and moon  colors should never change so we can skip those
+      setCelestialTime(Simulation.scratch.processTime);
+      gl.uniform3fv(sunDirLoc, getSunDir());
+      gl.uniform3fv(moonDirLoc, getMoonDir());
+
+      // set map texture sampler to texture0
+      gl.uniform1i(mapLoc, 0);
+      gl.uniform1i(tileLoc, 1);
+      // draw it
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    };
+
+    // render now (why not?)
+    render(Simulation.state.gameTime);
+
+    // this should be elsewhere
+    // Simulation.state.DEBUG = true;
+
+    const times: number[] = [];
+    let fps: number = 0;
+    const fpsCont = document.getElementById('fps');
+    if (!fpsCont) throw new Error('could not find fps container');
+
+    const updateFps = () => {
+      const now = performance.now();
+      while (times.length > 0 && times[0] <= now - 1000) {
+        times.shift();
+      }
+      times.push(now);
+      fps = times.length;
+      fpsCont.innerText = fps + '';
+    };
+
+    // per frame
+    const experiment = (t: number) => {
+      if (Simulation.state.DEBUG) {
+        updateFps();
+      }
+      updateOffs();
+      render(t);
+    };
+
+    // frame subscription
+    Simulation.subscribe(experiment);
+    return () => Simulation.unsubscribe(experiment);
   }, []);
 
-  useEffect(() => {
-    if (mapDisplay && !moving) {
-      renderMap(mapDisplay, mapOffset[0], mapOffset[1]);
-    }
-  }, [mapDisplay, mapOffset, sr.state.map]);
-  useEffect(() => {
-    if (mapDisplay && !moving) {
-      renderSprites(mapDisplay, mapOffset[0], mapOffset[1]);
-    }
-  }, [mapDisplay, mapOffset, sr.state]);
-
-  return <div style={{position: 'relative', flexGrow: 1, width: '100%', height: '100%'}}>
-    <div ref={ref}/>
-    <canvas className={'canvasDisplay'} id={'map-canvas'} width={cd?.w} height={cd?.h}/>
-    <canvas className={'canvasDisplay'} id={'sprite-canvas'}  width={cd?.w} height={cd?.h} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseMove={onMouseMove}/>
-    {sr.state.DEBUG && <div style={{position: 'absolute', top: '5px', left: '5px', background: 'rgba(0,0,0,.2)', padding: '.5rem', zIndex: 4}}>
-      map offset: {mapOffset[0]} / {mapOffset[1]}<br/>
-      drag offset: {dragOffset[0]} / {dragOffset[1]}<br/>
-      {/*mouse pos: {clientMousePos[0]} / {clientMousePos[1]}*/}
-    </div>}
-    {hoverData?.person
-      ? <div style={{
-          transform: `translate(${(mousePos[0] < (cd.w / 2)) ? 0 : -105}%, ${(mousePos[1] < (cd.h / 2)) ? 0 : -100}%)`,
-          position: 'absolute',
-          zIndex: 3,
-          left: (mousePos[0] + 5) + 'px',
-          top: (mousePos[1] + 5) + 'px',
-        }}>
-          <PersonCard {...hoverData}/>
-        </div>
-      : null}
+  return <div id={'experiment-display'}>
+    <canvas id={'experiment-canvas'}/>
+    <div id={'debug'} style={{position: 'absolute', top: 5, left: 5, background: 'rgba(0,0,0,.5)'}}>
+      <div id={'fps'}/>
+      <div id={'sun'}/>
+    </div>
   </div>;
 };
-
-export default memo(Map);

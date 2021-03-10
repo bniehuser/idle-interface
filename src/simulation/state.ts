@@ -1,32 +1,20 @@
 import { ALWAYS } from '../util/const/time';
+import { mergeDeep } from '../util/data-access';
 import { DEFAULT_START_TIME } from './defaults';
 import { Map } from './entity/map';
 import { PeopleStore } from './entity/person';
 import { RelationshipStore } from './entity/relationship';
-import { SimulationEventParams } from './index';
+import {
+  createEventLog,
+  SimulationEvent,
+  SimulationEventLog,
+  SimulationEventSubtype,
+  SimulationEventType,
+} from './system/event';
 import { SimulationFrequency } from './time';
 
-export enum SimulationEventType {
-  Always = '*',
-  Notify = 'notify',
-  Person = 'person',
-  System = 'system',
-  Save = 'save',
-  Load = 'load',
-  Error = 'error',
-}
-export type SimulationEventSubtype = number|string;
-
-export interface SimulationEvent {
-  type: SimulationEventType;
-  sub: SimulationEventSubtype;
-  id?: number;
-  content: string|number;
-  at: number;
-}
-
 export type SimulationSubscriber = (t: number) => void;
-export type SimulationEventSubscriber = (...args: SimulationEventParams) => void;
+export type SimulationEventSubscriber = (e: SimulationEvent) => void;
 
 export type SimulationSettings = {
   initialized: boolean;
@@ -51,18 +39,18 @@ export interface SimulationState {
   people: PeopleStore;
   relationships: RelationshipStore;
   map?: Map;
-  events: SimulationEvent[];
+  events: SimulationEventLog;
   DEBUG: boolean;
 }
 
-export const createSimulationState = (): SimulationState => ({
-  realStart: Date.now(),
-  gameTime: DEFAULT_START_TIME,
-  fastForward: 0,
-  personId: 0,
-  placeId: 0,
-  people: {id: 0, all: {}, living: [], dead: []},
-  relationships: {id: 0, all: {}, active: [], volatile: []},
-  events: [],
-  DEBUG: false,
-});
+export const createSimulationState = (data: Partial<SimulationState> = {}): SimulationState => mergeDeep({
+    realStart: Date.now(),
+    gameTime: DEFAULT_START_TIME,
+    fastForward: 0,
+    personId: 0,
+    placeId: 0,
+    people: {id: 0, all: {}, living: [], dead: []},
+    relationships: {id: 0, all: {}, active: [], volatile: []},
+    events: createEventLog(),
+    DEBUG: false,
+}, data);

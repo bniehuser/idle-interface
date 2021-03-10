@@ -1,18 +1,10 @@
-import Simulation, { PersonBlackboard, SimulationBlackboard } from '../../../index';
+import { createPersonScratch, PersonScratch } from '../../../entity/person/person.scratch';
+import Simulation from '../../../index';
+import { SimulationScratch } from '../../../scratch';
 
-const newBBPerson = (): PersonBlackboard => ({
-  target: 0,
-  interactionInitiated: 0,
-  interacting: false,
-  initiated: false,
-  near: {
-    lastCheck: 0,
-    people: {},
-  },
-  deferred: [],
-});
+const newBBPerson = createPersonScratch;
 
-export const bbPerson = (id: number, bb: SimulationBlackboard = Simulation.scratch): PersonBlackboard => {
+export const bbPerson = (id: number, bb: SimulationScratch = Simulation.scratch): PersonScratch => {
   const ppl = bb.people;
   if (!ppl[id]) {
     ppl[id] = newBBPerson();
