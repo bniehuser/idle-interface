@@ -24,8 +24,8 @@ export const createWindowListeners = (inputScratch: SimulationInputScratch): Han
   'mouseup': () => { inputScratch.mouse.down = false; },
   'mousemove': evt => {
     const e = evt as MouseEvent;
-    inputScratch.mouse.x = e.offsetX;
-    inputScratch.mouse.y = e.offsetY;
+    inputScratch.mouse.x = e.clientX;
+    inputScratch.mouse.y = e.clientY;
   },
   'wheel': evt => {
     const e = evt as WheelEvent;

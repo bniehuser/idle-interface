@@ -1,7 +1,7 @@
 import { MINUTE } from '../util/const/time';
 import { mergeDeep } from '../util/data-access';
 import { DEFAULT_START_TIME } from './defaults';
-import { createPersonScratch, PersonScratch } from './entity/person/person.scratch';
+import { createPersonScratch, PersonScratch } from './entity/person';
 import { createSimulationInputScratch, SimulationInputScratch } from './system/input';
 import { FrequencyStamps, lastStampsFor, SimulationFrequency } from './time';
 
@@ -27,6 +27,7 @@ export type SimulationScratch = {
   realStartTime: number,
   lastSimulationTime: number;
   lastSimulationStamps: FrequencyStamps;
+  hoveredPerson?: number;
   people: PeopleScratch;
   locations: LocationsScratch;
   relationships: RelationshipsScratch;
@@ -34,6 +35,7 @@ export type SimulationScratch = {
   map: MapScratch;
   speed: SimulationFrequency;
   processTime: number;
+  catchUpFrom: number;
   input: SimulationInputScratch;
 };
 
@@ -42,7 +44,9 @@ export const createSimulationScratch = (data: Partial<SimulationScratch> = {}): 
   realStartTime: Date.now(),
   lastSimulationTime: DEFAULT_START_TIME,
   processTime: DEFAULT_START_TIME,
+  catchUpFrom: 0,
   lastSimulationStamps: lastStampsFor(DEFAULT_START_TIME),
+  hoveredPerson: undefined,
   people: {},
   locations: {},
   relationships: {},

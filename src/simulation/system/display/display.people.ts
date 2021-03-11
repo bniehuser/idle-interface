@@ -10,13 +10,25 @@ export const setPersonTexSize = (x: number, y: number) => {
 // could cast immediately to float32 array, but since we'll be throwing them all in a single array why bother
 export const getPersonPosArray = (person: Person, texOffset: [number, number] = [0, 0]): number[] => {
   const sizes = [texOffset[0] * PERSON_TEX_SIZE[0], (texOffset[0] + 1) * PERSON_TEX_SIZE[0], texOffset[1] * PERSON_TEX_SIZE[1], (texOffset[1] + 1) * PERSON_TEX_SIZE[1]];
+  const lx = person.location.x / 512;
+  const ly = person.location.y / 512;
+  const os = 1 / 512;
+
   return [
+    //   // x  y  u  v
+    //   -1, -1, 0, 1,
+    //   1, -1, 1, 1,
+    //   1,  1, 1, 0,
+    //
+    //   -1, -1, 0, 1,
+    //   1,  1, 1, 0,
+    //   -1,  1, 0, 0,
     // x, y, u, v -- six vertices for 2 triangles
-    person.location.x,     person.location.y,     sizes[0], sizes[2],
-    person.location.x + 1, person.location.y,     sizes[1], sizes[2],
-    person.location.x + 1, person.location.y + 1, sizes[1], sizes[3],
-    person.location.x,     person.location.y,     sizes[0], sizes[2],
-    person.location.x + 1, person.location.y + 1, sizes[1], sizes[3],
-    person.location.x,     person.location.y + 1, sizes[0], sizes[3],
+    lx,      ly,      sizes[0], sizes[3],
+    lx + os, ly,      sizes[1], sizes[3],
+    lx + os, ly + os, sizes[1], sizes[2],
+    lx,      ly,      sizes[0], sizes[3],
+    lx + os, ly + os, sizes[1], sizes[2],
+    lx,      ly + os, sizes[0], sizes[2],
   ];
 };

@@ -66,6 +66,18 @@ export const textureFromImg = (gl: WebGL2RenderingContext, img: HTMLImageElement
   return pixTex;
 };
 
+export const textureFromCanvas = (gl: WebGL2RenderingContext, canvas: HTMLCanvasElement) => {
+  const pixTex = gl.createTexture();
+  if (!pixTex) throw new Error('could not create texture');
+  gl.bindTexture(gl.TEXTURE_2D, pixTex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return pixTex;
+};
+
 type TempSamplerType = 'nearest'; // this should be a union type of acceptable sampler types
 export const createSampler = (gl: WebGL2RenderingContext, samplerType: TempSamplerType) => {
   switch (samplerType) {

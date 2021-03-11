@@ -4,7 +4,7 @@ out vec2 texPos;
 out vec2 spritePos;
 
 void main() {
-    gl_Position = vec4(position.x, position.y, 1., 1.);
+    gl_Position = vec4(position.x*2.-1., position.y*2.-1., 1., 1.);
     texPos = position.zw;
     spritePos = position.xy;
 }

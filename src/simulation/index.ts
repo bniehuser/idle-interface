@@ -1,5 +1,5 @@
 /** this _should_ be the primary simulation loop */
-import { ALWAYS, DAY } from '../util/const/time';
+import { ALWAYS, DAY, HOUR, MINUTE, MONTH } from '../util/const/time';
 import { mergeDeep } from '../util/data-access';
 import { createSimulationSettings } from './defaults';
 import { createSimulationScratch, SimulationScratch } from './scratch';
@@ -21,7 +21,7 @@ import { createWindowListeners, disableInput, enableInput } from './system/input
 import { frequencyComparators, SIMULATION_FREQUENCIES, SimulationFrequency } from './time';
 
 let FRAME: number|undefined;
-const MAX_PROCESS_TIME = 1000 / 120; // half a 60fps frame
+const MAX_PROCESS_TIME = 1000 / 90; // three quarters of a 60fps frame
 
 const SETTINGS: SimulationSettings = createSimulationSettings();
 const SCRATCH: SimulationScratch = createSimulationScratch();
@@ -42,9 +42,18 @@ const main = (time: number) => {
   FRAME = requestAnimationFrame(main);
   const simulationTime = SETTINGS.worldStartTime + (Date.now() - SCRATCH.realStartTime) * SETTINGS.timeMultiplier; // close enough
 
-  SETTINGS.subscribers[ALWAYS]?.forEach(s => s(simulationTime));
-
   const timeout = performance.now() + MAX_PROCESS_TIME;
+
+  SETTINGS.subscribers[ALWAYS]?.forEach(s => s(simulationTime)); // this means we're always rendering one cycle behind, but that's ok
+
+  if (simulationTime - SCRATCH.lastSimulationTime > DAY) {
+    SCRATCH.speed = simulationTime - SCRATCH.lastSimulationTime > MONTH ? DAY : HOUR;
+    if (!SCRATCH.catchUpFrom) SCRATCH.catchUpFrom = SCRATCH.lastSimulationTime;
+  } else {
+    SCRATCH.catchUpFrom = 0;
+    SCRATCH.speed = MINUTE;
+  }
+
   SCRATCH.processTime = SCRATCH.lastSimulationTime + SCRATCH.speed;
   let iterations = 0;
   while ((SCRATCH.processTime < simulationTime) && performance.now() < timeout) {

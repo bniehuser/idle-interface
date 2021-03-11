@@ -1,13 +1,13 @@
-import { createPerson, Gender, GENDERS, Person, SKIN_TONES, SkinTone } from './person.state';
-import { mergeDeep, randArrayItem } from '../../../util/data-access';
-import { YEAR } from '../../../util/const/time';
-import maleNames from '../../../data/names/names-male.json';
-import femaleNames from '../../../data/names/names-female.json';
-import surNames from '../../../data/names/names-surnames.json';
 import moment from 'moment';
+import femaleNames from '../../../data/names/names-female.json';
+import maleNames from '../../../data/names/names-male.json';
+import surNames from '../../../data/names/names-surnames.json';
+import { YEAR } from '../../../util/const/time';
+import { mergeDeep, randArrayItem } from '../../../util/data-access';
 import { EmojiKey, htmlEmoji } from '../../../util/emoji';
-import { SimulationState } from '../../state';
 import { createAI } from '../../component/ai';
+import { SimulationState } from '../../state';
+import { createPerson, Gender, GENDERS, Person, SKIN_TONES, SkinTone } from './person.state';
 
 export const createRandomPerson = (state: SimulationState, data: Partial<Person> = {}): Person => {
   const gender = randArrayItem(GENDERS);
@@ -52,7 +52,7 @@ export const calcAge = (birthday: number, now: number) => {
   return moment(now).diff(moment(birthday), 'years');
 };
 
-export const calcAvatar = (gender: Gender, skinTone: SkinTone, age: number): string => {
+export const calcAvatarProps = (gender: Gender, skinTone: SkinTone, age: number): [EmojiKey, SkinTone] => {
   let emojiKey: EmojiKey;
   if (age < 5) {
     emojiKey = 'baby';
@@ -63,7 +63,11 @@ export const calcAvatar = (gender: Gender, skinTone: SkinTone, age: number): str
   } else {
     emojiKey = gender === 'male' ? 'old-man' : 'old-woman';
   }
-  return htmlEmoji(emojiKey, skinTone);
+  return [emojiKey, skinTone];
+};
+
+export const calcAvatar = (gender: Gender, skinTone: SkinTone, age: number): string => {
+  return htmlEmoji(...calcAvatarProps(gender, skinTone, age));
 };
 
 export const processBirthday = (p: Person, now: number): Partial<Person> => {

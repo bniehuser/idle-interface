@@ -1,16 +1,13 @@
 import React, { FC, memo } from 'react';
 import Simulation from '../../../simulation';
-import PersonCard from './PersonCard';
-import Tooltip from './Tooltip';
 
 type PCProps = { id: number };
 
-export const PersonName: FC<PCProps> = ({ id }) => {
+export const PersonName: FC<PCProps> = memo(({ id }) => {
   const person = Simulation.state.people.all[id];
-  const stateData = Simulation.scratch.people[id];
   if (!person) {
     return <span>Could not find person: {id}</span>;
   }
-  return <Tooltip noFormat={true} tip={<PersonCard person={person} stateData={stateData}/>}>{person.avatar}{person.name.given} {person.name.family}</Tooltip>;
-};
-export default memo(PersonName);
+  return <span onMouseOver={() => Simulation.scratch.hoveredPerson = person.id} onMouseOut={() => Simulation.scratch.hoveredPerson = undefined}>{person.avatar}{person.name.given} {person.name.family}</span>;
+});
+export default PersonName;

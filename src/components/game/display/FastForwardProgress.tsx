@@ -1,21 +1,25 @@
-import React, { FC } from 'react';
-import { useGame } from '../../../context/game';
-import Progress from '../interface/Progress';
 import moment from 'moment';
+import React, { FC, useState } from 'react';
+import Simulation from '../../../simulation';
 import { legibleTimeDiff } from '../../../util/const/time';
+import Progress from '../interface/Progress';
 
 const FastForwardProgress: FC = () => {
-  const [game, , blackboard] = useGame();
+  const [r, setR] = useState(false);
+  Simulation.subscribe(() => {
+    // force every frame update
+    setR(!r);
+  });
   // might work?
   return <div style={{display: 'flex', flexFlow: 'column', alignItems: 'center', justifyContent: 'center', width: '33%', minWidth: '300px', height: '250px'}}>
     <h3 style={{textAlign: 'center'}}>Catching up time...</h3>
     <Progress
-      min={blackboard.catchUpFrom}
-      max={game.gameTime}
-      current={blackboard.processTime}
-      minLabel={moment(blackboard.catchUpFrom).format('MM/DD/yy hh:mm a')}
-      maxLabel={moment(game.gameTime).format('MM/DD/yy hh:mm a')}
-      currentLabel={legibleTimeDiff(game.gameTime - blackboard.processTime)}
+      min={Simulation.scratch.catchUpFrom}
+      max={Simulation.state.simulationTime}
+      current={Simulation.scratch.processTime}
+      minLabel={moment(Simulation.scratch.catchUpFrom).format('MM/DD/yy hh:mm a')}
+      maxLabel={moment(Simulation.state.simulationTime).format('MM/DD/yy hh:mm a')}
+      currentLabel={legibleTimeDiff(Simulation.state.simulationTime - Simulation.scratch.processTime)}
       type={'feature'}
       color={''} // to override default for feature default
     />

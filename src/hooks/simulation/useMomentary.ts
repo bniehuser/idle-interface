@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import Simulation, { SimulationSubscriber } from '../../simulation';
+import Simulation from '../../simulation';
+import { SimulationSubscriber } from '../../simulation/state';
 import { MINUTE } from '../../util/const/time';
 
 export const useMomentary = (f?: SimulationSubscriber, refresh?: boolean) => {
