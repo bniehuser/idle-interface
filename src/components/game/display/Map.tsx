@@ -3,30 +3,14 @@ import TileSet from '../../../../public/img/TileSet.png';
 import Simulation from '../../../simulation';
 import { createMap, makeMapTexture, MapPoint } from '../../../simulation/entity/map';
 import { calcAvatarProps } from '../../../simulation/entity/person';
-import {
-  getMoonColor,
-  getMoonDir,
-  getSunColor,
-  getSunDir,
-  setCelestialTime,
-} from '../../../simulation/system/celestial';
+import { getMoonColor, getMoonDir, getSunColor, getSunDir, setCelestialTime, } from '../../../simulation/system/celestial';
 import { getPersonPosArray, setPersonTexSize } from '../../../simulation/system/display/display.people';
 import { initEmojiSpriteBuffer, spriteOffs } from '../../../simulation/system/display/emojiSprites';
 import vsSource from '../../../simulation/system/display/shaders/simpleOrtho.vert';
 import fsSource2 from '../../../simulation/system/display/shaders/sprites.frag';
 import vsSource2 from '../../../simulation/system/display/shaders/sprites.vert';
 import fsSource from '../../../simulation/system/display/shaders/tilemap.frag';
-import {
-  createProgram,
-  createSampler,
-  createShader,
-  fetchGlContext,
-  resizeGl,
-  setTexture,
-  textureFromCanvas,
-  textureFromImg,
-  textureFromPixArray,
-} from '../../../simulation/system/display/webgl';
+import { createProgram, createSampler, createShader, fetchGlContext, resizeGl, setTexture, textureFromCanvas, textureFromImg, textureFromPixArray, } from '../../../simulation/system/display/webgl';
 
 const bindAndLoadBuffer = (gl: WebGL2RenderingContext, vao: WebGLVertexArrayObject, buf: WebGLBuffer, data: Float32Array) => {
   gl.bindVertexArray(vao);
@@ -175,6 +159,12 @@ export const Map: FC = memo(() => {
     const updateOffs = () => {
       if (HANDLE_INPUT) {
         const {mouse} = Simulation.scratch.input;
+        const br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
+        worldMouse.x = (((mouse.x - br.left - offset[0]) * scale) / 32);
+        worldMouse.y = (((mouse.y - br.top - offset[1]) * scale) / 32);
+        (document.getElementById('fps') as HTMLDivElement).innerText = `${JSON.stringify(worldMouse)}`;
+
+
         if (mouse.down) {
           if (lastMouse) {
             const mouseDelta = [mouse.x - lastMouse[0], mouse.y - lastMouse[1]];
@@ -189,24 +179,33 @@ export const Map: FC = memo(() => {
         if (mouse.scroll !== 0) {
           const oldscale = scale;
           const scaleDiff = mouse.scroll * .09;
-          scale = Math.max(.1, Math.min(10, scale * (1 + scaleDiff)));
-          const sF = scale / oldscale;
+          scale = Math.max(.1, Math.min(20, scale * (1 + scaleDiff)));
           if (oldscale !== scale) {
             // this has GOT to be SLOW AS HELL
-            const frame = document.getElementById('experiment-display');
-            if (frame) {
-              // TODO: this is TOTALLY FLIPPING WRONG, and slow to boot
-              const br = frame.getBoundingClientRect();
-              const inX = (mouse.x - br.x);
-              const inY = (mouse.y - br.y);
-              let totx = offset[0] + inX;
-              let toty = offset[1] + inY;
-              console.log('old offset:', scale.toFixed(3), sF.toFixed(3), offset);
-              offset[0] = totx * sF - inX / sF; // / sF;
-              offset[1] = toty * sF - inY / sF; // / sF;
-              changedOffset = true;
-              console.log('new offset:', scale.toFixed(3), sF.toFixed(3), offset);
-            }
+            const sF = scale / oldscale;
+
+
+
+            offset[0] = (worldMouse.x * 32) - mouse.x + br.left / -scale;
+            offset[1] = (worldMouse.y * 32) - mouse.y + br.top / -scale;
+            changedOffset = true;
+            //
+            //
+            //
+            // const frame = document.getElementById('experiment-display');
+            // if (frame) {
+            //   // TODO: this is TOTALLY FLIPPING WRONG, and slow to boot
+            //   const br = frame.getBoundingClientRect();
+            //   const inX = (mouse.x - br.x);
+            //   const inY = (mouse.y - br.y);
+            //   let totx = offset[0] + inX;
+            //   let toty = offset[1] + inY;
+            //   console.log('old offset:', scale.toFixed(3), sF.toFixed(3), offset);
+            //   offset[0] = totx * sF - inX / sF; // / sF;
+            //   offset[1] = toty * sF - inY / sF; // / sF;
+            //   changedOffset = true;
+            //   console.log('new offset:', scale.toFixed(3), sF.toFixed(3), offset);
+            // }
           }
           mouse.scroll = 0; // poor man's reset
           console.log('setting scale', scale);
@@ -227,6 +226,11 @@ export const Map: FC = memo(() => {
       const hx = lx + (gl.canvas.width * scale) / map.tileSize + 1;
       const hy = ly + (gl.canvas.height * scale) / map.tileSize + 1;
       return [lx, ly, hx, hy];
+    };
+
+    const worldMouse = {
+      x: 0,
+      y: 0,
     };
 
     // this absolutely does not belong here
@@ -257,16 +261,19 @@ export const Map: FC = memo(() => {
             marker.style.fontSize = (32 / scale) + 'px';
             marker.style.width = (32 / scale) + 'px';
             marker.style.height = (32 / scale) + 'px';
-            (document.getElementById('experiment-display') as HTMLDivElement).appendChild(marker);
-          }
-          if (scale !== oldscale || changedOffset) {
-            if (scale !== oldscale) {
-              marker.style.fontSize = (32 / scale) + 'px';
-              marker.style.width = (32 / scale) + 'px';
-              marker.style.height = (32 / scale) + 'px';
-            }
             marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
             marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
+            (document.getElementById('experiment-display') as HTMLDivElement).appendChild(marker);
+          } else {
+            if (scale !== oldscale || changedOffset) {
+              if (scale !== oldscale) {
+                marker.style.fontSize = (32 / scale) + 'px';
+                marker.style.width = (32 / scale) + 'px';
+                marker.style.height = (32 / scale) + 'px';
+              }
+              marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
+              marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
+            }
           }
           if ((p.location.x | 0) === worldMouse.x && (p.location.y | 0) === worldMouse.y) {
             // console.log('should hover person ', p.id, worldMouse);
