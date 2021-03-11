@@ -38,6 +38,11 @@ export const Map: FC = memo(() => {
 
   // init
   useEffect(() => {
+    // manage input controls
+    let HANDLE_INPUT: boolean = false;
+    (document.getElementById('experiment-display') as HTMLDivElement).addEventListener('mouseenter', () => HANDLE_INPUT = true);
+    (document.getElementById('experiment-display') as HTMLDivElement).addEventListener('mouseleave', () => HANDLE_INPUT = false);
+
     // load our simulation data immediately
     if (!Simulation.state.map) {
       console.log('why we no see state map?');
@@ -165,41 +170,47 @@ export const Map: FC = memo(() => {
     let lastMouse: [number, number]|undefined = undefined;
     let offset: [number, number] = [0, 0];
     let scale: number = 1;
+    let oldscale: number = 1;
+    let changedOffset: boolean = false;
     const updateOffs = () => {
-      const { mouse } = Simulation.scratch.input;
-      if (mouse.down) {
-        if (lastMouse) {
-          const mouseDelta = [mouse.x - lastMouse[0], mouse.y - lastMouse[1]];
-          offset = [offset[0] + mouseDelta[0], offset[1] + mouseDelta[1]];
-        }
-        lastMouse = [mouse.x, mouse.y];
-      } else {
-        // this seems wasteful.  setting undefined every frame probably isn't expensive, but it feels wrong.
-        lastMouse = undefined;
-      }
-      if (mouse.scroll !== 0) {
-        const oldscale = scale;
-        const scaleDiff = mouse.scroll * .09;
-        scale = Math.max(.1, Math.min(10, scale * (1 + scaleDiff)));
-        const sF = scale / oldscale;
-        if (oldscale !== scale) {
-          // this has GOT to be SLOW AS HELL
-          const frame = document.getElementById('experiment-display');
-          if (frame) {
-            // TODO: this is TOTALLY FLIPPING WRONG, and slow to boot
-            const br = frame.getBoundingClientRect();
-            const inX = (mouse.x - br.x);
-            const inY = (mouse.y - br.y);
-            let totx = offset[0] + inX;
-            let toty = offset[1] + inY;
-            console.log('old offset:', scale.toFixed(3), sF.toFixed(3), offset);
-            offset[0] = totx * sF - inX / sF; // / sF;
-            offset[1] = toty * sF - inY / sF; // / sF;
-            console.log('new offset:', scale.toFixed(3), sF.toFixed(3), offset);
+      if (HANDLE_INPUT) {
+        const {mouse} = Simulation.scratch.input;
+        if (mouse.down) {
+          if (lastMouse) {
+            const mouseDelta = [mouse.x - lastMouse[0], mouse.y - lastMouse[1]];
+            offset = [offset[0] + mouseDelta[0], offset[1] + mouseDelta[1]];
+            changedOffset = true;
           }
+          lastMouse = [mouse.x, mouse.y];
+        } else {
+          // this seems wasteful.  setting undefined every frame probably isn't expensive, but it feels wrong.
+          lastMouse = undefined;
         }
-        mouse.scroll = 0; // poor man's reset
-        console.log('setting scale', scale);
+        if (mouse.scroll !== 0) {
+          const oldscale = scale;
+          const scaleDiff = mouse.scroll * .09;
+          scale = Math.max(.1, Math.min(10, scale * (1 + scaleDiff)));
+          const sF = scale / oldscale;
+          if (oldscale !== scale) {
+            // this has GOT to be SLOW AS HELL
+            const frame = document.getElementById('experiment-display');
+            if (frame) {
+              // TODO: this is TOTALLY FLIPPING WRONG, and slow to boot
+              const br = frame.getBoundingClientRect();
+              const inX = (mouse.x - br.x);
+              const inY = (mouse.y - br.y);
+              let totx = offset[0] + inX;
+              let toty = offset[1] + inY;
+              console.log('old offset:', scale.toFixed(3), sF.toFixed(3), offset);
+              offset[0] = totx * sF - inX / sF; // / sF;
+              offset[1] = toty * sF - inY / sF; // / sF;
+              changedOffset = true;
+              console.log('new offset:', scale.toFixed(3), sF.toFixed(3), offset);
+            }
+          }
+          mouse.scroll = 0; // poor man's reset
+          console.log('setting scale', scale);
+        }
       }
     };
 
@@ -242,14 +253,21 @@ export const Map: FC = memo(() => {
             marker.id = 'marker_' + p.id;
             marker.style.position = 'absolute';
             marker.style.zIndex = '999';
+            marker.innerText = p.avatar;
+            marker.style.fontSize = (32 / scale) + 'px';
+            marker.style.width = (32 / scale) + 'px';
+            marker.style.height = (32 / scale) + 'px';
             (document.getElementById('experiment-display') as HTMLDivElement).appendChild(marker);
           }
-          marker.style.fontSize = (32 / scale) + 'px';
-          marker.innerText = p.avatar;
-          marker.style.width = (32 / scale) + 'px';
-          marker.style.height = (32 / scale) + 'px';
-          marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
-          marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
+          if (scale !== oldscale || changedOffset) {
+            if (scale !== oldscale) {
+              marker.style.fontSize = (32 / scale) + 'px';
+              marker.style.width = (32 / scale) + 'px';
+              marker.style.height = (32 / scale) + 'px';
+            }
+            marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
+            marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
+          }
           if ((p.location.x | 0) === worldMouse.x && (p.location.y | 0) === worldMouse.y) {
             // console.log('should hover person ', p.id, worldMouse);
             hovered = p.id;
@@ -264,6 +282,8 @@ export const Map: FC = memo(() => {
           }
         }
       });
+      oldscale = scale;
+      changedOffset = false;
       if (hovered || (setByMe && !hovered)) {
         if (!hovered) setByMe = false;
         Simulation.scratch.hoveredPerson = hovered;

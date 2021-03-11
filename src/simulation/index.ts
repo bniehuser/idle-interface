@@ -54,7 +54,7 @@ const main = (time: number) => {
     SCRATCH.speed = MINUTE;
   }
 
-  SCRATCH.processTime = SCRATCH.lastSimulationTime + SCRATCH.speed;
+  SCRATCH.processTime = Math.min(SCRATCH.lastSimulationTime + SCRATCH.speed, simulationTime);
   let iterations = 0;
   while ((SCRATCH.processTime < simulationTime) && performance.now() < timeout) {
     iterations++;
