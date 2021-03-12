@@ -29,7 +29,7 @@ export const Birthday: PersonNode = id => {
     const age = ((Simulation.scratch.processTime - p.birthday) / YEAR) | 0;
     p.avatar = calcAvatar(p.gender, p.skinTone, age);
     p.age = age;
-    Simulation.event({type: SimulationEventType.Person, sub: 'birthday', entityId: id, data: `Happy V{${age},*} birthday, P{${id}}!`, public: true});
+    Simulation.event({type: SimulationEventType.Person, sub: 'birthday', entityId: id, data: `Happy V{${age},*} birthday, P{${id}}!`, public: true, expires: 0});
     return true;
   }
   return false;
@@ -37,20 +37,20 @@ export const Birthday: PersonNode = id => {
 
 export const SayHey: PersonNode = Sequence(
   RandomChance(.0004),
-  id => Notify(`P{${id}} says 'hey'!`, 'speech')(id),
+  id => Notify(`P{${id}} says 'hey'!`, 'speech', id)(id),
 );
 
 export const Daydream: PersonNode = Sequence(
   RandomChance(.0001),
-  id => Notify(`P{${id}} is daydreaming...`, 'thought')(id),
+  id => Notify(`P{${id}} is daydreaming...`, 'thought', id)(id),
 );
 
 export const GetAngry: PersonNode = Sequence(
   RandomChance(.0001),
-  id => Notify(`P{${id}} is VERY ANGRY`, 'yell')(id),
+  id => Notify(`P{${id}} is VERY ANGRY`, 'yell', id)(id),
 );
 
 export const FindMoney: PersonNode = Sequence(
   RandomChance(.000004),
-  id => Notify(`P{${id}} found V{$100,money} on the ground!`, 'luck')(id),
+  id => Notify(`P{${id}} found V{$100,money} on the ground!`, 'luck', id)(id),
 );

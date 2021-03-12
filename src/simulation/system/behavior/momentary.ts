@@ -3,6 +3,7 @@ import Simulation from '../../index';
 import { DoDeferred } from './defer';
 import { FinishInteraction, IsInteracting } from './interact';
 import { FindMoney } from './life';
+import { HandleMovement } from './movement';
 import { IsBusy } from './person';
 import { BehaviorNode, PersonNode, RandomChance, Selector, Sequence } from './tree';
 import { bbPerson } from './util/blackboard';
@@ -29,6 +30,7 @@ const HandleInteraction: PersonNode = Sequence(
 );
 
 export const MomentaryTree: BehaviorNode = Selector(
+  HandleMovement,
   Sequence(IsBusy, DoBusyWork),
   HandleInteraction,
   DoDeferred,

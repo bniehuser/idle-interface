@@ -200,8 +200,8 @@ export const Map: FC = memo(() => {
             offset[1] = -1 * (((worldMouse.y * 32) / scale) - mouse.y + br.top);
             changedOffset = true;
           }
+          // TODO: make this smarter.  should not be directly modified here in case anything else wants to use it
           mouse.scroll = 0; // poor man's reset
-          console.log('setting scale', scale);
         }
       }
     };
@@ -236,6 +236,20 @@ export const Map: FC = memo(() => {
       Simulation.state.people.living.forEach(id => {
         const p = Simulation.state.people.all[id];
         const ps = getPersonScratch(Simulation.scratch, p.id);
+        if (ps.movement.moving && ps.movement.path[0]) {
+          const ms = ps.movement.speed * ((Simulation.scratch.processTime - Simulation.scratch.lastSimulationTime) / 100000);
+          const toNext = [ps.movement.path[0].x - p.location.x, ps.movement.path[0].y - p.location.y];
+          const dist = Math.sqrt(toNext[0] * toNext[0] + toNext[1] * toNext[1]);
+          if (dist < ms) {
+            p.location.x = ps.movement.path[0].x;
+            p.location.y = ps.movement.path[0].y;
+            ps.movement.path.shift();
+          } else {
+            const direction = [toNext[0] / dist, toNext[1] / dist];
+            p.location.x += ms * direction[0];
+            p.location.y += ms * direction[1];
+          }
+        }
         if (inBox(p.location, box)) {
           spriteVertices.push(...getPersonPosArray(p, spriteOffs(...calcAvatarProps(p.gender, p.skinTone, p.age))));
           if (!ps.marker) {
@@ -255,7 +269,7 @@ export const Map: FC = memo(() => {
             if (mn !== ps.marker.className) { // worth checking, changing dom className prompts dom style assessment even if its the same
               ps.marker.className = mn;
             }
-            if (scale !== oldscale || changedOffset) {
+            if (scale !== oldscale || changedOffset || ps.movement.moving) {
               if (scale !== oldscale) {
                 ps.marker.style.fontSize = (32 / scale) + 'px';
                 ps.marker.style.width = (32 / scale) + 'px';
