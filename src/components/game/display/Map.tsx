@@ -3,14 +3,31 @@ import TileSet from '../../../../public/img/TileSet.png';
 import Simulation from '../../../simulation';
 import { createMap, makeMapTexture, MapPoint } from '../../../simulation/entity/map';
 import { calcAvatarProps } from '../../../simulation/entity/person';
-import { getMoonColor, getMoonDir, getSunColor, getSunDir, setCelestialTime, } from '../../../simulation/system/celestial';
+import { getPersonScratch } from '../../../simulation/scratch';
+import {
+  getMoonColor,
+  getMoonDir,
+  getSunColor,
+  getSunDir,
+  setCelestialTime,
+} from '../../../simulation/system/celestial';
 import { getPersonPosArray, setPersonTexSize } from '../../../simulation/system/display/display.people';
 import { initEmojiSpriteBuffer, spriteOffs } from '../../../simulation/system/display/emojiSprites';
 import vsSource from '../../../simulation/system/display/shaders/simpleOrtho.vert';
 import fsSource2 from '../../../simulation/system/display/shaders/sprites.frag';
 import vsSource2 from '../../../simulation/system/display/shaders/sprites.vert';
 import fsSource from '../../../simulation/system/display/shaders/tilemap.frag';
-import { createProgram, createSampler, createShader, fetchGlContext, resizeGl, setTexture, textureFromCanvas, textureFromImg, textureFromPixArray, } from '../../../simulation/system/display/webgl';
+import {
+  createProgram,
+  createSampler,
+  createShader,
+  fetchGlContext,
+  resizeGl,
+  setTexture,
+  textureFromCanvas,
+  textureFromImg,
+  textureFromPixArray,
+} from '../../../simulation/system/display/webgl';
 
 const bindAndLoadBuffer = (gl: WebGL2RenderingContext, vao: WebGLVertexArrayObject, buf: WebGLBuffer, data: Float32Array) => {
   gl.bindVertexArray(vao);
@@ -156,15 +173,13 @@ export const Map: FC = memo(() => {
     let scale: number = 1;
     let oldscale: number = 1;
     let changedOffset: boolean = false;
+    let br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
     const updateOffs = () => {
       if (HANDLE_INPUT) {
         const {mouse} = Simulation.scratch.input;
-        const br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
         worldMouse.x = (((mouse.x - br.left - offset[0]) * scale) / 32);
         worldMouse.y = (((mouse.y - br.top - offset[1]) * scale) / 32);
         (document.getElementById('fps') as HTMLDivElement).innerText = `${JSON.stringify(worldMouse)}`;
-
-
         if (mouse.down) {
           if (lastMouse) {
             const mouseDelta = [mouse.x - lastMouse[0], mouse.y - lastMouse[1]];
@@ -181,31 +196,9 @@ export const Map: FC = memo(() => {
           const scaleDiff = mouse.scroll * .09;
           scale = Math.max(.1, Math.min(20, scale * (1 + scaleDiff)));
           if (oldscale !== scale) {
-            // this has GOT to be SLOW AS HELL
-            const sF = scale / oldscale;
-
-
-
-            offset[0] = (worldMouse.x * 32) - mouse.x + br.left / -scale;
-            offset[1] = (worldMouse.y * 32) - mouse.y + br.top / -scale;
+            offset[0] = -1 * (((worldMouse.x * 32) / scale) - mouse.x + br.left);
+            offset[1] = -1 * (((worldMouse.y * 32) / scale) - mouse.y + br.top);
             changedOffset = true;
-            //
-            //
-            //
-            // const frame = document.getElementById('experiment-display');
-            // if (frame) {
-            //   // TODO: this is TOTALLY FLIPPING WRONG, and slow to boot
-            //   const br = frame.getBoundingClientRect();
-            //   const inX = (mouse.x - br.x);
-            //   const inY = (mouse.y - br.y);
-            //   let totx = offset[0] + inX;
-            //   let toty = offset[1] + inY;
-            //   console.log('old offset:', scale.toFixed(3), sF.toFixed(3), offset);
-            //   offset[0] = totx * sF - inX / sF; // / sF;
-            //   offset[1] = toty * sF - inY / sF; // / sF;
-            //   changedOffset = true;
-            //   console.log('new offset:', scale.toFixed(3), sF.toFixed(3), offset);
-            // }
           }
           mouse.scroll = 0; // poor man's reset
           console.log('setting scale', scale);
@@ -238,54 +231,49 @@ export const Map: FC = memo(() => {
     const getPeopleArray = () => {
       spriteVertices = [];
       const box = worldBox();
-      const { mouse } = Simulation.scratch.input;
-      const br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
-      const worldMouse = {
-        x: (((mouse.x - br.left - offset[0]) * scale) / 32) | 0,
-        y: (((mouse.y - br.top - offset[1]) * scale) / 32) | 0,
-      };
-      (document.getElementById('fps') as HTMLDivElement).innerText = `${JSON.stringify(worldMouse)}`;
       // if (!((performance.now() | 0) % 10)) console.log(box);
       let hovered: number|undefined = setByMe  ? undefined : Simulation.scratch.hoveredPerson;
       Simulation.state.people.living.forEach(id => {
         const p = Simulation.state.people.all[id];
-        let marker = document.getElementById('marker_' + p.id);
+        const ps = getPersonScratch(Simulation.scratch, p.id);
         if (inBox(p.location, box)) {
           spriteVertices.push(...getPersonPosArray(p, spriteOffs(...calcAvatarProps(p.gender, p.skinTone, p.age))));
-          if (!marker) {
-            marker = document.createElement('div');
-            marker.id = 'marker_' + p.id;
-            marker.style.position = 'absolute';
-            marker.style.zIndex = '999';
-            marker.innerText = p.avatar;
-            marker.style.fontSize = (32 / scale) + 'px';
-            marker.style.width = (32 / scale) + 'px';
-            marker.style.height = (32 / scale) + 'px';
-            marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
-            marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
-            (document.getElementById('experiment-display') as HTMLDivElement).appendChild(marker);
+          if (!ps.marker) {
+            ps.marker = document.createElement('div');
+            ps.marker.id = 'marker_' + p.id;
+            ps.marker.className = 'personMarker ' + (ps.interacting ? 'speech' : '');
+            ps.marker.innerText = p.avatar;
+            ps.marker.style.fontSize = (32 / scale) + 'px';
+            ps.marker.style.width = (32 / scale) + 'px';
+            ps.marker.style.height = (32 / scale) + 'px';
+            ps.marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
+            ps.marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
+            // OHS NOES -- scratch is no longer serializable.
+            (document.getElementById('experiment-display') as HTMLDivElement).appendChild(ps.marker);
           } else {
+            const mn = 'personMarker ' + (ps.interacting ? 'speech' : '');
+            if (mn !== ps.marker.className) { // worth checking, changing dom className prompts dom style assessment even if its the same
+              ps.marker.className = mn;
+            }
             if (scale !== oldscale || changedOffset) {
               if (scale !== oldscale) {
-                marker.style.fontSize = (32 / scale) + 'px';
-                marker.style.width = (32 / scale) + 'px';
-                marker.style.height = (32 / scale) + 'px';
+                ps.marker.style.fontSize = (32 / scale) + 'px';
+                ps.marker.style.width = (32 / scale) + 'px';
+                ps.marker.style.height = (32 / scale) + 'px';
               }
-              marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
-              marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
+              ps.marker.style.top = ((p.location.y * 32 / scale + offset[1])) + 'px';
+              ps.marker.style.left = ((p.location.x * 32 / scale + offset[0])) + 'px';
             }
           }
-          if ((p.location.x | 0) === worldMouse.x && (p.location.y | 0) === worldMouse.y) {
+          if (p.location.x <= worldMouse.x && worldMouse.x <= p.location.x + 1 && p.location.y <= worldMouse.y && worldMouse.y <= p.location.y + 1) {
             // console.log('should hover person ', p.id, worldMouse);
             hovered = p.id;
             setByMe = true;
-            marker.style.background = 'rgba(232,232,32,1)';
-          } else {
-            marker.style.background = 'rgba(232,232,32,.5)';
           }
         } else {
-          if (marker) {
-            (marker.parentElement as HTMLDivElement).removeChild(marker);
+          if (ps.marker) {
+            (ps.marker.parentElement as HTMLDivElement).removeChild(ps.marker);
+            ps.marker = undefined;
           }
         }
       });
@@ -299,9 +287,16 @@ export const Map: FC = memo(() => {
       // console.log('visible people:', vertices.length / 24);
     };
 
+    let RESIZED: boolean = false;
+    ((gl.canvas as HTMLCanvasElement).parentElement as HTMLDivElement).addEventListener('resize', () => RESIZED = true);
+    window.addEventListener('resize', () => RESIZED = true);
     // do the actual rendering
     const render = (t: number) => {
-      resizeGl('experiment-display', gl); // this actually makes rendering FASTER...?!? layout runs during frame cycle instead of over a larger span outside it
+      if (RESIZED) {
+        resizeGl('experiment-display', gl); // this actually makes rendering FASTER...?!? layout runs during frame cycle instead of over a larger span outside it
+        br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
+        RESIZED = false;
+      }
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(prg);
 

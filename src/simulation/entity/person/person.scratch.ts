@@ -12,6 +12,7 @@ export interface PersonScratch extends EntityScratch {
     people: {[k: number]: number},
   };
   deferred: DeferredBehavior[];
+  marker?: HTMLDivElement;
 }
 
 export const createPersonScratch = (data: Partial<PersonScratch> = {}): PersonScratch => mergeDeep({
