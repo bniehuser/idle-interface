@@ -1,7 +1,7 @@
 import React, { FC, memo, useEffect } from 'react';
 import TileSet from '../../../../public/img/TileSet.png';
 import Simulation from '../../../simulation';
-import { createMap, makeMapTexture, MapPoint } from '../../../simulation/entity/map';
+import { makeMapTexture, MapPoint } from '../../../simulation/entity/map';
 import { calcAvatarProps } from '../../../simulation/entity/person';
 import { getPersonScratch } from '../../../simulation/scratch';
 import {
@@ -48,7 +48,10 @@ export const Map: FC = memo(() => {
     if (!Simulation.state.map) {
       console.log('why we no see state map?');
     }
-    const map = Simulation.state.map || createMap({width: 512, height: 512});
+    const map = Simulation.state.map; // || createMap(Simulation.scratch, {width: 512, height: 512});
+    if (!map) {
+      throw new Error('no map.');
+    }
     const pixArray = makeMapTexture(map);
 
     // do the stuff before we start
@@ -168,12 +171,12 @@ export const Map: FC = memo(() => {
 
     // input handling
     // TODO: maybe move this code to simulation display system too? seems highly dependent on map processing
+    let br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
     let lastMouse: [number, number]|undefined = undefined;
-    let offset: [number, number] = [0, 0];
-    let scale: number = 1;
+    let scale: number = 5;
+    let offset: [number, number] = [((-map.width / 2) + br.width / 2) * scale, ((-map.height / 2) + br.height / 2) * scale];
     let oldscale: number = 1;
     let changedOffset: boolean = false;
-    let br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
     const updateOffs = () => {
       if (HANDLE_INPUT) {
         const {mouse} = Simulation.scratch.input;
@@ -390,6 +393,28 @@ export const Map: FC = memo(() => {
     // render now (why not?)
     getPeopleArray();
     render(Simulation.state.simulationTime);
+
+    // const ed = document.getElementById('experiment-display');
+    // if (ed && Simulation.state.map) {
+    //   const getT = makeTileFinder(Simulation.state.map);
+    //   for (let x = -10; x < 11; x++) {
+    //     for (let y = -10; y < 11; y++) {
+    //       const t = getT(256+x, 256+y);
+    //       if (t && t.type === 3) {
+    //         const dot = document.createElement('div');
+    //         dot.style.position = 'absolute';
+    //         dot.style.borderRadius = '50%';
+    //         dot.style.background = 'blue';
+    //         dot.style.width = (32 / scale) + 'px';
+    //         dot.style.height = (32 / scale) + 'px';
+    //         dot.style.top = (((256+y) * 32 / scale + offset[1])) + 'px';
+    //         dot.style.left = (((256+x) * 32 / scale + offset[0])) + 'px';
+    //         console.log('creating dot', dot.style.top, dot.style.left);
+    //         ed.appendChild(dot);
+    //       }
+    //     }
+    //   }
+    // }
 
     // this should be elsewhere
     // Simulation.state.DEBUG = true;

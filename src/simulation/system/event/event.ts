@@ -4,6 +4,7 @@ export enum SimulationEventType {
   Always = '*',
   Notify = 'notify',
   Person = 'person',
+  Map = 'map',
   System = 'system',
   Save = 'save',
   Load = 'load',

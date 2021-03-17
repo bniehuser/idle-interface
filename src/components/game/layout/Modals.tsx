@@ -4,6 +4,7 @@ import Simulation from '../../../simulation';
 import { getPersonScratch } from '../../../simulation/scratch';
 import { MINUTE } from '../../../util/const/time';
 import FastForwardProgress from '../display/FastForwardProgress';
+import { Loading } from '../display/Loading';
 import Modal from '../interface/Modal';
 import { PersonCard } from '../interface/PersonCard';
 
@@ -22,6 +23,7 @@ const Modals: FC = () => {
   const t = getTransform();
   return <div style={{zIndex: 999, position: 'absolute'}}> {/* force modals on top of all else */}
     <Modal visible={Simulation.scratch.speed > MINUTE}><FastForwardProgress/></Modal>
+    <Modal visible={Simulation.scratch.loading.active}><Loading/></Modal>
     {Simulation.scratch.hoveredPerson &&
     <div style={{position: 'absolute', top: t[1], left: t[0], transform: `translate(${t[2]}, ${t[3]})`}}>
         <PersonCard person={Simulation.state.people.all[Simulation.scratch.hoveredPerson]} stateData={getPersonScratch(Simulation.scratch, Simulation.scratch.hoveredPerson)}/>

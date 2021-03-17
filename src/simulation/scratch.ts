@@ -37,6 +37,7 @@ export type SimulationScratch = {
   processTime: number;
   catchUpFrom: number;
   input: SimulationInputScratch;
+  loading: { active: boolean, message: string, progress: number };
 };
 
 export const createSimulationScratch = (data: Partial<SimulationScratch> = {}): SimulationScratch => mergeDeep({
@@ -54,6 +55,7 @@ export const createSimulationScratch = (data: Partial<SimulationScratch> = {}): 
   map: {},
   speed: MINUTE,
   input: createSimulationInputScratch(),
+  loading: { active: false, message: '', progress: 0 },
 }, data);
 
 export const addPersonScratch = (scratch: SimulationScratch, id: number) => {

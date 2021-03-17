@@ -1,3 +1,6 @@
+import { OverlappingModel } from 'wavefunctioncollapse';
+import { SimulationScratch } from '../scratch';
+
 export interface MapPoint {
   x: number;
   y: number;
@@ -23,8 +26,8 @@ export interface MapTileProperties {
 export const mapTileTypes: MapTileProperties[] = [
   {name: 'ground', walkable: 50, position: [0, 32]},
   {name: 'path', walkable: 100, position: [0, 64]},
-  {name: 'wall', walkable: 0, position: [0, 128]},
-  {name: 'floor', walkable: 100, position: [96, 128]},
+  {name: 'floor', walkable: 100, position: [0, 128]},
+  {name: 'wall', walkable: 0, position: [96, 128]},
   {name: 'flowers1', walkable: 50, position: [32, 32]},
   {name: 'flowers2', walkable: 50, position: [64, 32]},
 ];
@@ -84,41 +87,262 @@ const makeRoad = (map: Map, axis: 'x' | 'y', position: number, width: number = 1
   }
 };
 
-export const createMap = (opts: Partial<MapCreationOptions>): Map => {
+const makeBuilding = (map: Map, position: [number, number], size: [number, number]) => {
+  const tile = makeTileFinder(map);
+  for (let x = position[0]; x < position[0] + size[0]; x++) {
+    for (let y = position[1]; y < position[1] + size[1]; y++) {
+      const t = tile(x, y);
+      if (t) {
+        if (x === position[0] || x === position[0] + size[0] - 1 || y === position[1] || y === position[1] + size[1] - 1) {
+          t.type = 3;
+        } else {
+          t.type = 2;
+        }
+      }
+    }
+  }
+};
+
+const rand = (min: number = 0, max: number = 1) => {
+  return Math.random() * (max - min) + min;
+};
+const randInt = (min: number = 0, max: number = 10) => {
+  return rand(min, max) | 0;
+};
+const randGround = () => Math.random() < .2 ? (Math.random() < .5 ? 4 : 5) : 0;
+
+export const createMap = async (scratch: SimulationScratch, opts: Partial<MapCreationOptions>): Promise<Map> => {
+  scratch.loading.message = 'Creating map...';
+  scratch.loading.active = true;
+  const map = await createRealMap(scratch, opts);
+  scratch.loading.active = false;
+  return map;
+};
+
+export const createRealMap = async (scratch: SimulationScratch, opts: Partial<MapCreationOptions>): Promise<Map> => {
   const mapOpts: MapCreationOptions = Object.assign(defaultMapOptions, opts);
   const {width, height, tileSize} = mapOpts;
   const tileIdx = makeTileIdxFinder(width);
   const tiles: MapTile[] = [];
   for (let x = 0; x < width; x++) {
     for (let y = 0; y < height; y++) {
-      tiles[tileIdx(x, y)] = {type: Math.random() < .2 ? (Math.random() < .5 ? 4 : 5) : 0};
+      tiles[tileIdx(x, y)] = {type: randGround()};
     }
   }
   const map = {width, height, tiles, tileSize};
 
-  // so now we have an empty map.  what next?
-  const thirdX = Math.floor(width / 3);
-  const roadX = thirdX + Math.floor(Math.random() * thirdX); // somewhere in the middle
-  const thirdY = Math.floor(height / 3);
-  const roadY = thirdY + Math.floor(Math.random() * thirdY); // somewhere in the middle
+  // ok we're going to do this completely differently
+  const hw = width / 2;
+  const hh = height / 2;
+  const v = Math.min(width / height) / 7;
+  const center = {x: hw + randInt(-v, v), y: hh + randInt(-v, v)};
+  const minTownSize = Math.min(hw, hh);
+  const maxTownSize = Math.min(width * .8, height * .8);
+  const cw = randInt(minTownSize, maxTownSize);
+  const ch = randInt(minTownSize, maxTownSize);
 
-  if (Math.random() < .5) {
-    makeRoad(map, 'y', roadX, 2);
-    makeRoad(map, 'x', roadY);
-  } else {
-    makeRoad(map, 'x', roadY, 2);
-    makeRoad(map, 'y', roadX);
+  // create 'town' box
+  const townOrigin = { x: center.x - ((cw / 2) | 0), y: center.y - ((ch / 2) | 0)};
+  const townBox = [townOrigin.x, townOrigin.y, townOrigin.x + cw, townOrigin.y + ch];
+
+  // break into subdivisions for 'city blocks'
+  const blockSize = 50;
+  let numBlocksX = (cw / blockSize) | 0;
+  if (cw % blockSize > blockSize / 2) { numBlocksX++; }
+  let numBlocksY = (ch / blockSize) | 0;
+  if (ch % blockSize > blockSize / 2) { numBlocksY++; }
+  // make roads?  make blocks?  either way we need to keep track of both.
+  // keep arrays of x/y subdivisions
+  let lw = cw;
+  const xdiv = [0];
+  const roadsx = [[-2, 2]];
+  let i = 0;
+  while (lw > blockSize) {
+    const thisBlockWidth = blockSize + randInt(-2, 2);
+    const rw = (i === ((numBlocksX / 2) | 0) ? randInt(3, 4) : 2);
+    // xpos is ROAD START
+    const xpos = cw - lw + thisBlockWidth - rw;
+    roadsx.push([xpos, rw]);
+    xdiv.push(xpos + rw);
+    lw = cw - xpos;
+    i++;
+  }
+  xdiv.push(cw);
+  roadsx.push([cw, 2]);
+
+  let lh = ch;
+  const ydiv = [0];
+  const roadsy = [[-2, 2]];
+  i = 0;
+  while (lh > blockSize) {
+    const thisBlockHeight = blockSize + randInt(-2, 2);
+    const rw = (i === ((numBlocksY / 2) | 0) ? randInt(3, 4) : 2);
+    const ypos = cw - lh + thisBlockHeight - rw;
+    roadsy.push([ypos, rw]);
+    ydiv.push(ypos + rw);
+    lh = cw - (ypos + rw);
+    i++;
+  }
+  ydiv.push(ch);
+  roadsy.push([ch, 2]);
+  const blocks: Array<[number, number, number, number]> = [];
+  // okay, now use those divisions to make blocks
+  for (let x = 0; x < roadsx.length - 1; x++) {
+    for (let y = 0; y < roadsy.length - 1; y++) {
+      const blockX = townBox[0] + roadsx[x][0] + roadsx[x][1];
+      const blockY = townBox[1] + roadsy[y][0] + roadsy[y][1];
+      const blockW = townBox[0] + roadsx[x + 1][0] - blockX;
+      const blockH = townBox[1] + roadsy[y + 1][0] - blockY;
+      blocks.push([blockX, blockY, blockX + blockW, blockY + blockH]);
+    }
   }
 
-  console.log(map);
+  // stop here, figure it out and display it so we can tweak accordingly
+  roadsx.forEach(r => makeRoad(map, 'x', townBox[0] + r[0], r[1], r[1] > 2 ? 0 : townBox[1], r[1] > 2 ? 0 : townBox[3]));
+  roadsy.forEach(r => makeRoad(map, 'y', townBox[1] + r[0], r[1], r[1] > 2 ? 0 : townBox[0], r[1] > 2 ? 0 : townBox[2]));
+//  blocks.forEach(b => makeBuilding(map, [b[0] + randInt(1, 3), b[1] + randInt(1, 3)], [b[2] - b[0] - randInt(3, 5), b[3] - b[1] - randInt(3, 5)]));
+
+  const w: [number, number, number, number] = [255, 255, 255, 255];
+  const b: [number, number, number, number] = [0, 0, 0, 255];
+  const g: [number, number, number, number] = [127, 127, 127, 255];
+  const makePx = (pa: [number, number, number, number][]) => {
+    return new Uint8ClampedArray(pa.reduce((a, c) => a.concat(c), [] as number[]));
+  };
+  const imgPx = makePx([
+    w, w, w, w, w, w, w, w, w, w, w, w,
+    w, b, b, b, b, b, w, w, w, w, w, w,
+    w, b, g, g, g, b, w, w, w, w, w, w,
+    w, b, g, g, g, g, w, w, b, b, b, w,
+    w, b, g, g, g, b, w, w, b, g, b, w,
+    w, b, b, b, g, b, w, w, b, g, b, w,
+    w, b, g, g, g, b, b, b, b, g, b, w,
+    w, b, g, g, g, b, g, b, g, g, b, w,
+    w, b, b, b, b, b, g, b, g, g, b, w,
+    w, w, w, w, b, g, g, b, g, g, b, w,
+    w, w, w, w, b, b, b, b, g, b, b, w,
+    w, w, w, w, w, w, w, w, w, w, w, w,
+  ]);
+
+  scratch.loading.progress = 10;
+  // const incr = 90 / blocks.length;
+
+  blocks.forEach(b => {
+    const bw = b[2] - b[0];
+    const bh = b[3] - b[1];
+    if (bw < 10 ||  bh < 10) {
+      return;
+    }
+    const t = new OverlappingModel(imgPx, 12, 12, 3, bw, bh, true, false, 8);
+    console.log('generating overlapping model...', b, b[2] - b[0], b[3] - b[1]);
+    let s = false;
+    let tries = 0;
+    while (!s && tries < 10) {
+      s = t.generate(Math.random);
+      tries++;
+    }
+    if (s) {
+      const v = t.graphics();
+      if (v) {
+        for (let i = 0; i < v.length / 4; i++) {
+          const gx = b[0] + (i % bw);
+          const gy = b[1] + ((i / bw) | 0);
+          const tile = map.tiles[gy * map.width + gx];
+          if (tile) {
+            tile.type = v[i * 4] === 0 ? 3 : (v[i * 4] === 127 ? 2 : randGround());
+          } else {
+            console.error('no tile:', gx, gy);
+          }
+        }
+      }
+    } else {
+      throw new Error('could not generate');
+    }
+  });
+
+  // manipulate blocks into features (city center, park, etc)
+  // make a park
+  // subdivide blocks into lots
+  // place buildings on lots
+  // decorate lots
+  // draw 'roads' between / through blocks
+  // place fringe lots
+  // place buildings on fringe lots
+  // use noise to generate 'nature' outside town
+
+  // so now we have an empty map.  what next?
+  // const thirdX = Math.floor(width / 3);
+  // const roadX = thirdX + Math.floor(Math.random() * thirdX); // somewhere in the middle
+  // const thirdY = Math.floor(height / 3);
+  // const roadY = thirdY + Math.floor(Math.random() * thirdY); // somewhere in the middle
+  //
+  //
+  // if (Math.random() < .5) {
+  //   makeRoad(map, 'y', roadX, 4);
+  //   makeRoad(map, 'x', roadY, 3);
+  // } else {
+  //   makeRoad(map, 'x', roadY, 4);
+  //   makeRoad(map, 'y', roadX, 3);
+  // }
+  //
+  // const BLOCK = 60;
+  //
+  // // how big is a 'block?  20 spaces?
+  // // before x
+  // let nr = 1 + ((Math.random() * 2) | 0);
+  // for (let i = 0; i < nr; i++) {
+  //   const nrx = roadX - (BLOCK + i * BLOCK);
+  //   const s = (Math.random() * thirdY) | 0;
+  //   const e = height - ((Math.random() * thirdY) | 0);
+  //   makeRoad(map, 'y', nrx, 2, s, e);
+  // }
+  // // after x
+  // nr = 1 + ((Math.random() * 2) | 0);
+  // for (let i = 0; i < nr; i++) {
+  //   const nrx = roadX + (BLOCK + i * BLOCK);
+  //   const s = (Math.random() * thirdY) | 0;
+  //   const e = height - ((Math.random() * thirdY) | 0);
+  //   makeRoad(map, 'y', nrx, 2, s, e);
+  // }
+  // // before y
+  // nr = 1 + ((Math.random() * 2) | 0);
+  // for (let i = 0; i < nr; i++) {
+  //   const nry = roadY - (BLOCK + i * BLOCK);
+  //   const s = (Math.random() * thirdX) | 0;
+  //   const e = width - ((Math.random() * thirdX) | 0);
+  //   makeRoad(map, 'x', nry, 2, s, e);
+  // }
+  // // after y
+  // nr = 1 + ((Math.random() * 2) | 0);
+  // for (let i = 0; i < nr; i++) {
+  //   const nry = roadY + (BLOCK + i * BLOCK);
+  //   const s = (Math.random() * thirdX) | 0;
+  //   const e = width - ((Math.random() * thirdX) | 0);
+  //   makeRoad(map, 'x', nry, 2, s, e);
+  // }
+  //
+  // const BUILDINGX = 16;
+  // const BUILDINGY = 16;
+  //
+  // for (let x = roadX - (BLOCK + 2) * 3; x <= roadX + (BLOCK + 2) * 2; x += (BLOCK + 2)) {
+  //   for (let y = roadY - (BLOCK + 2) * 3; y <= roadY + (BLOCK + 2) * 2; y += (BLOCK + 2)) {
+  //     for (let bx = x; bx <= x + (BLOCK + 2) - BUILDINGX; bx += BUILDINGX) {
+  //       for (let by = y; by <= y + (BLOCK + 2) - BUILDINGY; by += BUILDINGY) {
+  //         makeBuilding(map, [bx + 1, by + 1], [BUILDINGX - 2, BUILDINGY - 2]);
+  //       }
+  //     }
+  //   }
+  // }
+
+    console.log(map);
+  scratch.loading.active = false;
 
   return map;
 };
 
 // THESE WILL FAIL IF GIVEN NUMS OUTSIDE RANGE
 const makeTileIdxFinder = (width: number) => (x: number, y: number): number => width * y + x;
-const makeTileFinder = (map: Map) => (x: number, y: number): undefined | MapTile => map.tiles[map.width * y + x];
-const makeTilePropsFinder = (map: Map) => (x: number, y: number): undefined | MapTileProperties => mapTileTypes[map.tiles[map.width * y + x]?.type];
+export const makeTileFinder = (map: Map) => (x: number, y: number): undefined | MapTile => map.tiles[map.width * y + x];
+export const makeTilePropsFinder = (map: Map) => (x: number, y: number): undefined | MapTileProperties => mapTileTypes[map.tiles[map.width * y + x]?.type];
 
 // make a texture pixel map
 export const makeMapTexture = (map: Map): Uint8Array => {
@@ -171,3 +395,5 @@ export const renderMap = (mapDisplay: MapDisplay, pxOffsetX: number = 0, pxOffse
     }
   }
 };
+
+export const isWalkable = (map: Map, m: MapPoint): boolean => !!makeTilePropsFinder(map)(m.x, m.y)?.walkable;

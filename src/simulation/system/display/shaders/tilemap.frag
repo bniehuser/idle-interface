@@ -63,8 +63,11 @@ void main() {
     // calc eyeball normal to pixel assuming 1 unit distance
     vec3 eyeNormal = normalize(vec3(newPos - .5, 0.) - vec3(0.,0.,-1.));
     // get sunlight
-    vec4 sl = vec4(sunLight(normalize(vec3(0., 0., -1)), eyeNormal, 15., 2.5 , 1.), 1.); // orig 15., 2.5, 1.
-    vec4 ml = vec4(moonLight(normalize(vec3(0., 0., -1)), eyeNormal, 15., 2.5 , 1.), 1.); // orig 15., 2.5, 1.
+    float gs = (tileP.r + tileP.g + tileP.b) / 3.;
+    float shiny = gs * 25.;
+    float diff = gs * 3.5;
+    vec4 sl = vec4(sunLight(normalize(vec3(0., 0., -1)), eyeNormal, shiny, diff, 1.), 1.); // orig 15., 2.5, 1.
+    vec4 ml = vec4(moonLight(normalize(vec3(0., 0., -1)), eyeNormal, shiny, diff, 1.), 1.); // orig 15., 2.5, 1.
     ml = u_moonDirection.z > 0. ? vec4(0., 0., 0., 1.) : ml;
     sl = u_sunDirection.z > 0. ? vec4(0., 0., 0., 1.) : sl;
     sl = max(sl, ml);

@@ -13,30 +13,35 @@ const Game: FC<{ style: CSS.Properties }> = ({style}) => {
   const [initialized, setInitialized] = useState(false);
   useEffect(() => {
 
+    Simulation.start(); // totally premature
+
     // i feel like there should be a smarter way to do this initialization stuff, probably in a 'load()' function
     const numPeople = 500;
     const width = 512;
     const height = 512;
 
-    Simulation.state.map = createMap({width, height});
-    Simulation.event({type: SimulationEventType.Notify, data: `Created ${width} x ${height} map.`});
+    createMap(Simulation.scratch, {width, height}).then(map => {
+      Simulation.event({type: SimulationEventType.Map, sub: 'created', public: false});
+      Simulation.state.map = map;
+      Simulation.event({type: SimulationEventType.Notify, data: `Created ${width} x ${height} map.`});
 
-    Array.from(Array(numPeople), () => {
-      addPerson(Simulation.state.people, createRandomPerson(Simulation.state));
+      Array.from(Array(numPeople), () => {
+        addPerson(Simulation.state.people, createRandomPerson(Simulation.state));
+      });
+      Simulation.event({type: SimulationEventType.Notify, data: `Loaded ${numPeople} random people.`});
+
+      // here we're just managing some things up front that we know should be set for the life of the simulation
+      Simulation.init({
+        subscribers: {
+          [MINUTE]: [momentaryAI],
+          [HOUR]: [hourlyAI],
+          [DAY]: [dailyAI],
+        },
+      });
+      Simulation.event({type: SimulationEventType.Notify, data: `Simulation Initialized.`});
+
+      setInitialized(true);
     });
-    Simulation.event({type: SimulationEventType.Notify, data: `Loaded ${numPeople} random people.`});
-
-    // here we're just managing some things up front that we know should be set for the life of the simulation
-    Simulation.init({
-      subscribers: {
-        [MINUTE]: [momentaryAI],
-        [HOUR]: [hourlyAI],
-        [DAY]: [dailyAI],
-      },
-    });
-    Simulation.event({type: SimulationEventType.Notify, data: `Simulation Initialized.`});
-
-    setInitialized(true);
   }, []);
   return !initialized ? null : <div style={{...style, flex: '1 1 0%'}}>
     <Map/>

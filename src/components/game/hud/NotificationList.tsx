@@ -8,7 +8,7 @@ import Notification from '../interface/Notification';
 const NotificationList: FC = () => {
   const [localEvents, setLocalEvents] = useState<SimulationEvent[]>([]);
   const [typeFilters, setTypeFilters] = useState<SimulationEventType[]>([]);
-  const [subFilters, setSubFilters] = useState<SimulationEventSubtype[]>([]);
+  const [subFilters, setSubFilters] = useState<SimulationEventSubtype[]>(['horse', 'speech']);
 
   const tfBut = (t: SimulationEventType, i: string|undefined = undefined) =>
     <span
