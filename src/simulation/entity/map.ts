@@ -223,6 +223,21 @@ export const createRealMap = async (scratch: SimulationScratch, opts: Partial<Ma
     w, w, w, w, w, w, w, w, w, w, w, w,
   ]);
 
+  const img2px = makePx([
+    w, w, w, w, w, w, w, w, w, w, w, w,
+    w, b, b, b, b, b, w, w, w, w, w, w,
+    w, b, g, g, g, b, w, w, b, g, b, w,
+    w, g, g, g, g, b, b, b, b, g, b, w,
+    w, b, g, g, g, b, g, b, g, g, b, b,
+    w, b, g, b, b, b, g, g, g, g, g, b,
+    w, b, g, g, g, g, g, b, g, g, g, b,
+    w, b, b, b, b, b, b, b, b, g, g, g,
+    w, b, g, g, g, g, g, g, b, g, g, b,
+    w, b, g, g, g, b, b, b, b, g, b, b,
+    w, b, g, b, b, b, w, b, g, g, b, w,
+    w, w, w, w, w, w, w, b, b, b, b, w,
+  ]);
+
   scratch.loading.progress = 10;
   // const incr = 90 / blocks.length;
 
@@ -232,7 +247,7 @@ export const createRealMap = async (scratch: SimulationScratch, opts: Partial<Ma
     if (bw < 10 ||  bh < 10) {
       return;
     }
-    const t = new OverlappingModel(imgPx, 12, 12, 3, bw, bh, true, false, 8);
+    const t = new OverlappingModel(img2px, 12, 12, 3, bw, bh, true, false, 8);
     console.log('generating overlapping model...', b, b[2] - b[0], b[3] - b[1]);
     let s = false;
     let tries = 0;
