@@ -28,7 +28,7 @@ const DoMove: PersonNode = id => {
     // const fpstart = performance.now();
     findPath(p(id).location, dp, path => {
       if (path) {
-        scr.movement.speed = Math.random();
+        scr.movement.speed = 1.20 + (Math.random() * .40); // ~1.4m/s
         scr.movement.path = path;
         scr.movement.moving = true;
         // if(!ALERTED) {

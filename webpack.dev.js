@@ -10,5 +10,6 @@ module.exports = {
         port: 3223,
         //publicPath: "http://localhost:3000/dist/",
         // hotOnly: true
+        historyApiFallback: { index: '/index.html' },
     }
 };

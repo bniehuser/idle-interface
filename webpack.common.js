@@ -45,7 +45,7 @@ module.exports = {
     },
     output: {
         filename: 'bundle.[hash].js', // <- ensure unique bundle name
-        //publicPath: "/dist/",
+        publicPath: "/",
         path: path.resolve(__dirname, 'dist'),
     },
     plugins: [

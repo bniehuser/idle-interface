@@ -173,20 +173,25 @@ export const Map: FC = memo(() => {
     // TODO: maybe move this code to simulation display system too? seems highly dependent on map processing
     let br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
     let lastMouse: [number, number]|undefined = undefined;
-    let scale: number = 5;
-    let offset: [number, number] = [((-map.width / 2) + br.width / 2) * scale, ((-map.height / 2) + br.height / 2) * scale];
+    // TODO: a better way to know map initial display settings
+    if(Simulation.scratch.map.scale === 1 && Simulation.scratch.map.offset[0] === 0 && Simulation.scratch.map.offset[1] === 0) {
+      const setScale = 5;
+      Simulation.scratch.map.scale = 5;
+      Simulation.scratch.map.offset = [((-map.width / 2) + br.width / 2) * setScale, ((-map.height / 2) + br.height / 2) * setScale];
+    }
     let oldscale: number = 1;
     let changedOffset: boolean = false;
     const updateOffs = () => {
       if (HANDLE_INPUT) {
         const {mouse} = Simulation.scratch.input;
-        worldMouse.x = (((mouse.x - br.left - offset[0]) * scale) / 32);
-        worldMouse.y = (((mouse.y - br.top - offset[1]) * scale) / 32);
+        const sm = Simulation.scratch.map;
+        worldMouse.x = (((mouse.x - br.left - sm.offset[0]) * sm.scale) / 32);
+        worldMouse.y = (((mouse.y - br.top - sm.offset[1]) * sm.scale) / 32);
         (document.getElementById('fps') as HTMLDivElement).innerText = `${JSON.stringify(worldMouse)}`;
         if (mouse.down) {
           if (lastMouse) {
             const mouseDelta = [mouse.x - lastMouse[0], mouse.y - lastMouse[1]];
-            offset = [offset[0] + mouseDelta[0], offset[1] + mouseDelta[1]];
+            sm.offset = [sm.offset[0] + mouseDelta[0], sm.offset[1] + mouseDelta[1]];
             changedOffset = true;
           }
           lastMouse = [mouse.x, mouse.y];
@@ -195,12 +200,12 @@ export const Map: FC = memo(() => {
           lastMouse = undefined;
         }
         if (mouse.scroll !== 0) {
-          const oldscale = scale;
+          const oldscale = sm.scale;
           const scaleDiff = mouse.scroll * .09;
-          scale = Math.max(.1, Math.min(20, scale * (1 + scaleDiff)));
-          if (oldscale !== scale) {
-            offset[0] = -1 * (((worldMouse.x * 32) / scale) - mouse.x + br.left);
-            offset[1] = -1 * (((worldMouse.y * 32) / scale) - mouse.y + br.top);
+          sm.scale = Math.max(.1, Math.min(20, sm.scale * (1 + scaleDiff)));
+          if (oldscale !== sm.scale) {
+            sm.offset[0] = -1 * (((worldMouse.x * 32) / sm.scale) - mouse.x + br.left);
+            sm.offset[1] = -1 * (((worldMouse.y * 32) / sm.scale) - mouse.y + br.top);
             changedOffset = true;
           }
           // TODO: make this smarter.  should not be directly modified here in case anything else wants to use it
@@ -217,6 +222,7 @@ export const Map: FC = memo(() => {
     const inBox = (p: MapPoint, box: [number, number, number, number]) => p.x >= box[0] && p.y >= box[1] && p.x <= box[2] && p.y <= box[3];
 
     const worldBox = (): [number, number, number, number] => {
+      const {scale, offset} = Simulation.scratch.map;
       const lx = (-offset[0] * scale) / map.tileSize - 1; // minus one tile for things overlapping screen
       const ly = (-offset[1] * scale) / map.tileSize - 1;
       const hx = lx + (gl.canvas.width * scale) / map.tileSize + 1;
@@ -231,27 +237,37 @@ export const Map: FC = memo(() => {
 
     // this absolutely does not belong here
     let setByMe: boolean = false;
+    const tileMeters = 30;
     const getPeopleArray = () => {
+      const {scale, offset} = Simulation.scratch.map;
       spriteVertices = [];
       const box = worldBox();
       // if (!((performance.now() | 0) % 10)) console.log(box);
       let hovered: number|undefined = setByMe  ? undefined : Simulation.scratch.hoveredPerson;
+      const es = (Simulation.scratch.processTime - Simulation.scratch.lastSimulationTime) / 1000;
       Simulation.state.people.living.forEach(id => {
         const p = Simulation.state.people.all[id];
         const ps = getPersonScratch(Simulation.scratch, p.id);
         if (ps.movement.moving && ps.movement.path[0]) {
-          const ms = ps.movement.speed * ((Simulation.scratch.processTime - Simulation.scratch.lastSimulationTime) / 100000);
-          const toNext = [ps.movement.path[0].x - p.location.x, ps.movement.path[0].y - p.location.y];
-          const dist = Math.sqrt(toNext[0] * toNext[0] + toNext[1] * toNext[1]);
-          if (dist < ms) {
-            p.location.x = ps.movement.path[0].x;
-            p.location.y = ps.movement.path[0].y;
-            ps.movement.path.shift();
-          } else {
-            const direction = [toNext[0] / dist, toNext[1] / dist];
-            p.location.x += ms * direction[0];
-            p.location.y += ms * direction[1];
-          }
+          // elapsed seconds (game time)
+          // meters per second * elapsed seconds
+          let ms = ps.movement.speed / tileMeters * es;
+          // console.log('moving', ms, 'meters in', es, 'seconds');
+          // TODO: this speed is WAAAY TOO FAST
+          do {
+            const toNext = [ps.movement.path[0].x - p.location.x, ps.movement.path[0].y - p.location.y];
+            const dist = Math.sqrt(toNext[0] * toNext[0] + toNext[1] * toNext[1]);
+            if (dist < ms) {
+              p.location.x = ps.movement.path[0].x;
+              p.location.y = ps.movement.path[0].y;
+              ps.movement.path.shift();
+            } else {
+              const direction = [toNext[0] / dist, toNext[1] / dist];
+              p.location.x += ms * direction[0];
+              p.location.y += ms * direction[1];
+            }
+            ms -= dist;
+          } while (ms > 0 && ps.movement.path.length);
         }
         if (inBox(p.location, box)) {
           spriteVertices.push(...getPersonPosArray(p, spriteOffs(...calcAvatarProps(p.gender, p.skinTone, p.age))));
@@ -309,6 +325,7 @@ export const Map: FC = memo(() => {
     window.addEventListener('resize', () => RESIZED = true);
     // do the actual rendering
     const render = (t: number) => {
+      const {scale, offset} = Simulation.scratch.map;
       if (RESIZED) {
         resizeGl('experiment-display', gl); // this actually makes rendering FASTER...?!? layout runs during frame cycle instead of over a larger span outside it
         br = (gl.canvas as HTMLCanvasElement).getBoundingClientRect();
@@ -446,7 +463,12 @@ export const Map: FC = memo(() => {
 
     // frame subscription
     Simulation.subscribe(experiment);
-    return () => Simulation.unsubscribe(experiment);
+    return () => {
+      Simulation.state.people.living.forEach(id => {
+        getPersonScratch(Simulation.scratch, id).marker = undefined;
+      });
+      Simulation.unsubscribe(experiment);
+    };
   }, []);
 
   return <div id={'experiment-display'}>

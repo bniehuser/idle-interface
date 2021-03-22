@@ -35,6 +35,8 @@ h1, h2, h3, h4, h5, h6 {
   left:0;
   right:0;
   bottom:0;
+  width:100vw;
+  height:100vh;
   background: rgba(0,0,0,.5);
   display: flex;
   align-items: center;
@@ -42,6 +44,7 @@ h1, h2, h3, h4, h5, h6 {
   .interface {
     width:auto;
     min-width:33%;
+    margin:auto;
     height:auto;
   }
 }
@@ -212,4 +215,25 @@ $highlight: rgba(232,232,32,.7);
     position:absolute;
   }
   &.speech:after { content: '\01F4AC'; }
+}
+
+
+.simpleMenu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  li {
+    padding: 0; margin: 0;
+    border-bottom: 1px solid darken($main-font, 15%);
+    a {
+      color: $main-font;
+      text-decoration: none;
+      font-variation-settings: 'wght' 600;
+      padding:.25rem;
+      display:block;
+      &:hover { background-color: fade-out($highlight, .7)}
+      &:active, &.selected { background-color: fade-out($highlight, .6)}
+    }
+  }
+  li:last-child { border-bottom: none; }
 }

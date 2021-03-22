@@ -20,7 +20,10 @@ export type RelationshipsScratch = {
 export type JobsScratch = {
   [k: number]: any, // TODO: job entity scratch
 };
-type MapScratch = any; // TODO: map entity scratch
+type MapScratch = {
+  offset: [number, number],
+  scale: number,
+}; // TODO: map entity scratch
 
 export type SimulationScratch = {
   lastTime: number,
@@ -52,7 +55,10 @@ export const createSimulationScratch = (data: Partial<SimulationScratch> = {}): 
   locations: {},
   relationships: {},
   jobs: {},
-  map: {},
+  map: {
+    offset: [0, 0],
+    scale: 1,
+  },
   speed: MINUTE,
   input: createSimulationInputScratch(),
   loading: { active: false, message: '', progress: 0 },

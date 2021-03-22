@@ -24,7 +24,7 @@ export const createRandomPerson = (state: SimulationState, data: Partial<Person>
       family: getRandomFamilyName(),
     },
     avatar: calcAvatar(gender, skinTone, age),
-    ai: createAI({decision: Math.random() < .5 ? 'idle' : 'busy'}),
+    ai: createAI({decision: Math.random() < .8 ? 'idle' : 'busy'}),
     location: {
       x: Math.floor(Math.random() * (state.map?.width || 1)),
       y: Math.floor(Math.random() * (state.map?.height || 1)),

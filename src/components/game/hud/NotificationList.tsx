@@ -30,7 +30,7 @@ const NotificationList: FC = () => {
     };
     Simulation.subscribeEvents(handleEvents);
     return () => Simulation.unsubscribeEvents(handleEvents);
-  }, [localEvents]);
+  }, []);
 
   useEffect(() => {
     setLocalEvents(Simulation.state.events.current.filter(event => (event.public || event.type === SimulationEventType.Notify) && (!typeFilters.includes(event.type) && (!event.sub || !subFilters.includes(event.sub)))).reverse());

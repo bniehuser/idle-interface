@@ -32,6 +32,9 @@ export const emojis = {
     'horse-head': 0x1F434,
     'beating-heart': 0x1F493,
     'luck': 0x1F340,
+    'fancy-clock': 0x1F570,
+    'rainbow': 0x1F308,
+    'plus': 0x2795,
 };
 export type EmojiKey = keyof typeof emojis;
 export const emojiVariants = {
@@ -45,7 +48,7 @@ export const emojiVariants = {
 export type EmojiVariant = keyof typeof emojiVariants;
 
 const defaultVariant = (emoji: EmojiKey) => {
-    if (['offense', 'defense', 'war', 'gear', 'yell', 'coffin', 'crossbones'].some(i => i === emoji)) { return 'default'; }
+    if (['offense', 'defense', 'war', 'gear', 'yell', 'coffin', 'crossbones', 'fancy-clock'].some(i => i === emoji)) { return 'default'; }
     return undefined;
 };
 
