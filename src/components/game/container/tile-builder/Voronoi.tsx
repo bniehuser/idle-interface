@@ -53,10 +53,38 @@ const drawVoronoi = (ctx: CanvasRenderingContext2D, diagram: Diagram) => {
       e = edges ? edges.reduce((a, c) => c.vb.y > olde.vb.y && Math.abs(xSlope - edgeSlope(c)) < Math.abs(xSlope - edgeSlope(c)) ? c : a) : undefined;
       tries++;
       if (tries === 1000) {
-        console.error(e);
+        console.error('xline:', e);
       }
     }
     ctx.stroke();
+
+    ctx.strokeStyle = '#F00';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    // find yer lines
+    // line left->right
+    const sy = Math.random() * 712 - 100;
+    const ey = Math.random() * 712 - 100;
+    const ySlope = (ey - sy) / 512;
+    let e2: undefined|Edge = diagram.edges
+      .filter(e => e.va.x === 0)
+      .reduce((a, c) => Math.abs(sy - c.va.y) <= Math.abs(sy - a.va.y) && Math.abs(xSlope - edgeSlope(c)) < Math.abs(ySlope - edgeSlope(c)) ? c : a);
+    let tries2 = 0;
+    console.log('ystart', e2);
+    while (e2 !== undefined && tries2 < 10000) {
+      ctx.moveTo(e2.va.x, e2.va.y);
+      ctx.lineTo(e2.vb.x, e2.vb.y);
+      const olde: Edge = e2;
+      const edges = diagram.edges
+        .filter(e => e.va.x === olde.vb.x && e.va.y === olde.vb.y);
+      e2 = edges ? edges.reduce((a, c) => c.vb.x > olde.vb.x && Math.abs(ySlope - edgeSlope(c)) < Math.abs(ySlope - edgeSlope(c)) ? c : a) : undefined;
+      tries2++;
+      if (tries2 === 1000) {
+        console.error('yline:', e2);
+      }
+    }
+    ctx.stroke();
+
   }
 };
 
