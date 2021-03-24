@@ -19,6 +19,7 @@
     "regenerator-runtime": "^0.13.7",
     "rot-js": "^2.1.5",
     "suncalc": "^1.8.0",
+    "voronoijs": "^1.0.0",
     "wavefunctioncollapse": "^2.0.0",
     "zipson": "^0.2.12"
   },

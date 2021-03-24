@@ -8,5 +8,6 @@ export const Menu: FC = () => {
     <li><NavLink activeClassName='selected' exact to={`${path}/settings`}>Settings</NavLink></li>
     <li><NavLink activeClassName='selected' exact to={`${path}/stats`}>Stats</NavLink></li>
     <li><NavLink activeClassName='selected' exact to={`${path}/tile-builder`}>Tile Builder</NavLink></li>
+    <li><NavLink activeClassName='selected' exact to={`${path}/voronoi`}>Voronoi</NavLink></li>
   </ul>;
 };
