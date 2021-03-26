@@ -35,6 +35,7 @@ export const emojis = {
     'fancy-clock': 0x1F570,
     'rainbow': 0x1F308,
     'plus': 0x2795,
+    'palette': 0x1F3A8,
 };
 export type EmojiKey = keyof typeof emojis;
 export const emojiVariants = {

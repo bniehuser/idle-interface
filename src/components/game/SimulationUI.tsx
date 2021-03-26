@@ -1,7 +1,7 @@
 import CSS from 'csstype';
 import React, { FC, memo, useEffect, useState } from 'react';
 import Simulation from '../../simulation';
-import { createMap } from '../../simulation/entity/map';
+import { createVoronoiMap } from '../../simulation/entity/map';
 import { addPerson, createRandomPerson } from '../../simulation/entity/person';
 import { dailyAI, hourlyAI, momentaryAI } from '../../simulation/system';
 import { SimulationEventType } from '../../simulation/system/event';
@@ -22,7 +22,7 @@ const SimulationUI: FC<{ style: CSS.Properties }> = ({style}) => {
       const width = 512;
       const height = 512;
 
-      createMap(Simulation.scratch, {width, height}, map => {
+      createVoronoiMap(Simulation.scratch, {width, height}, map => {
         Simulation.event({type: SimulationEventType.Map, sub: 'created', public: false});
         Simulation.state.map = map;
         Simulation.event({type: SimulationEventType.Notify, data: `Created ${width} x ${height} map.`});

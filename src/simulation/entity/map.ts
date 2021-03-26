@@ -1,4 +1,7 @@
+import { Voronoi } from 'voronoijs';
 import { OverlappingModel } from 'wavefunctioncollapse';
+import { drawVoronoi } from '../../components/game/container/tile-builder/Voronoi';
+import { generatePoints } from '../../util/geometry/poisson';
 import { SimulationScratch } from '../scratch';
 
 export interface MapPoint {
@@ -115,6 +118,79 @@ const randGround = () => Math.random() < .2 ? (Math.random() < .5 ? 4 : 5) : 0;
 //   const map = await createRealMap(scratch, opts);
 //   return map;
 // };
+
+export const createVoronoiMap = (scratch: SimulationScratch, opts: Partial<MapCreationOptions>, cb: (map: Map) => void): void => {
+  const mapOpts: MapCreationOptions = Object.assign(defaultMapOptions, opts);
+  const voronoiCanvas = document.createElement('canvas');
+  voronoiCanvas.width = mapOpts.width;
+  voronoiCanvas.height = mapOpts.height;
+  const divisions = 16;
+  const voronoiCtx = voronoiCanvas.getContext('2d');
+  if (!voronoiCtx) throw new Error('could not make canvas context for map generation');
+  voronoiCtx.imageSmoothingEnabled = false;
+  const pts = generatePoints(Math.random, {x: 0, y: 0}, {
+    x: voronoiCtx.canvas.width,
+    y: voronoiCtx.canvas.height,
+  }, () => Math.min(voronoiCtx.canvas.width, voronoiCtx.canvas.height) / divisions);
+  const voronoi = new Voronoi();
+  const diagram = voronoi.compute(pts.map((p, id) => ({...p, id})), {
+    xl: 0,
+    xr: voronoiCtx.canvas.width,
+    yt: 0,
+    yb: voronoiCtx.canvas.height,
+  });
+  drawVoronoi(voronoiCtx, diagram);
+  const tileIdx = makeTileIdxFinder(mapOpts.width);
+  const tiles: MapTile[] = [];
+  for (let x = 0; x < mapOpts.width; x++) {
+    for (let y = 0; y < mapOpts.height; y++) {
+      tiles[tileIdx(x, y)] = {type: randGround()};
+    }
+  }
+  const map = {width: mapOpts.width, height: mapOpts.height, tiles, tileSize: 32};
+
+  const data = voronoiCtx.getImageData(0, 0, mapOpts.width, mapOpts.height);
+  for (let i = 0; i < data.data.length; i += 4) {
+    const color: [number, number, number] = [data.data[i], data.data[i + 1], data.data[i + 2]];
+    map.tiles[i / 4].type = typeFromVoronoiColor(color);
+  }
+  console.log('map', map);
+  cb(map);
+};
+
+const colorSimilarity = (c1: [number, number, number], c2: [number, number, number]) =>  Math.abs(c1[0] - c2[0]) + Math.abs(c1[1] - c2[1]) + Math.abs(c1[2] - c2[2]);
+
+const typeFromVoronoiColor = (color: [number, number, number]) => {
+  // [95, 255, 95, 255],
+  //   [66, 66, 0, 255],
+  //   [128, 128, 0, 255],
+  //   [192, 192, 33, 255],
+  //   [44, 212, 44, 255],
+  const colors: [number, number, number][] = [
+    [95, 255, 95],
+      [66, 66, 0],
+      [128, 128, 0],
+      [192, 192, 33],
+      [44, 212, 44],
+  ];
+  const newColor = colors.reduce((a, c) => colorSimilarity(color, c) < colorSimilarity(color, a) ? c : a, colors[0]);
+
+  switch (newColor.join('~')) {
+    case [95, 255, 95].join('~'):
+      return 0;
+    case [66, 66, 0].join('~'):
+      return 3;
+    case [128, 128, 0].join('~'):
+      return 2;
+    case [192, 192, 33].join('~'):
+      return 1;
+    case [44, 212, 44].join('~'):
+      return Math.random() < .5 ? 4 : 5;
+    default:
+      console.log('did not find', color);
+      return 0;
+  }
+};
 
 export const createMap = (scratch: SimulationScratch, opts: Partial<MapCreationOptions>, cb: (map: Map) => void): void => {
     scratch.loading.message = 'Creating map...';

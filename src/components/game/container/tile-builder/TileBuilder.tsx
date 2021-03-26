@@ -173,6 +173,7 @@ export const TileBuilder: FC = () => {
     setInputCtx(wfcInput.getContext('2d') as CanvasRenderingContext2D);
     setOutputCtx(wfcOutput.getContext('2d') as CanvasRenderingContext2D);
     setTiledCtx(wfcTiled.getContext('2d') as CanvasRenderingContext2D);
+    fillInputArray(inputSize, 0);
     const mouseDownHandler = (e: MouseEvent) => { e.stopPropagation(); setMouseDown(true); };
     const mouseUpHandler = () => setMouseDown(false);
     wfcInput.addEventListener('mousedown', mouseDownHandler);
@@ -199,19 +200,27 @@ export const TileBuilder: FC = () => {
       setInputArray([...inputArray]);
     }
   };
+  const fillInputArray = (size: [number, number], color: number) => setInputArray(Array.from(Array(size[0])).map(x => Array.from(Array(size[1])).map(y => inputArray[x]?.[y] || color)));
 
   return <div className={'interface'}>
     <h2>Tile Builder</h2>
     <h3>Wave Function Collapse</h3>
     <div style={{display: 'flex', flexDirection: 'column'}}>
-      <div style={{padding: '.5em'}}>
-        {palette.map((c, i) => <span key={'p_' + i} style={{margin: '.25em', border: i === selectedPalette ? '2px solid white' : ''}} onClick={() => setSelectedPalette(i)}>
+      <div style={{padding: '.5em', display: 'flex', alignContent: 'center'}}>
+        {palette.map((c, i) => <div key={'p_' + i} style={{display: 'inline-block', cursor: 'pointer', textAlign: 'center', marginRight: '.25em', padding: '.25em', borderRadius: '.5em', border: '1px solid #666', background: i === selectedPalette ? '#666' : ''}} onClick={() => setSelectedPalette(i)}>
           <input type='color' value={toRgb(c)} onChange={e => {
             palette[i] = hexToRgb(e.target.value);
             setPalette([...palette]);
-          }}/>
-        </span>)}<span style={{borderRadius: '.5em', background: '#666', cursor: 'pointer'}} onClick={() => setPalette([...palette, [255, 255, 255, 255]])}><Emoji type={'plus'}/><Emoji type={'rainbow'}/></span><br/>
-        Grid? <input type={'checkbox'} checked={gridLines} onChange={e => setGridLines(e.target.checked)}/>
+          }}/><br/>
+          {i === selectedPalette ? <Emoji type={'palette'}/> : <>&nbsp;</>}
+        </div>)}
+        <span style={{borderRadius: '.5em', background: '#666', cursor: 'pointer'}} onClick={() => setPalette([...palette, [255, 255, 255, 255]])}><Emoji type={'plus'}/><Emoji type={'rainbow'}/></span>
+      </div>
+      <div>
+      <button style={{padding: '.25em .5em'}} onClick={() => {setInputSize([8, 8]); setOutputSize([32, 32]); fillInputArray([8, 8], 0); }}>small</button>
+      <button style={{padding: '.25em .5em'}} onClick={() => {setInputSize([12, 12]); setOutputSize([48, 48]); fillInputArray([12, 12], 0); }}>med</button>
+      <button style={{padding: '.25em .5em'}} onClick={() => {setInputSize([16, 16]); setOutputSize([64, 64]); fillInputArray([16, 16], 0); }}>big</button>
+      Grid? <input type={'checkbox'} checked={gridLines} onChange={e => setGridLines(e.target.checked)}/>
       </div>
       <div style={{display: 'flex', flexDirection: 'row'}}>
         <div style={{padding: '.5em'}}>
@@ -247,6 +256,9 @@ export const TileBuilder: FC = () => {
         </div>
         <div style={{padding: '.5em', display: outputArray.length ? '' : 'none'}}>
           <canvas id={'wfcTiled'} style={{transform: 'scale(2)', transformOrigin: '0 0', border: '3px solid #666'}} width={3 * outputSize[0]} height={3 * outputSize[1]}/>
+          <pre style={{paddingTop: '12em'}}>
+            {`const drawArray = [\n${inputArray.map(l => `  [${l?.join(', ')}],`).join(`\n`)}\n];`}
+          </pre>
         </div>
       </div>
     </div>

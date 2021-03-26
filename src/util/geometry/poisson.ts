@@ -93,8 +93,8 @@ export function generatePoints(
       }
 
       if (!tooClose) {
-        if (((rnd() * 30) | 0) === 1)
-          console.log(`adding ${JSON.stringify(newPoint)} : offset ${JSON.stringify(offset)}, r ${r}`);
+        // if (((rnd() * 30) | 0) === 1)
+        //   console.log(`adding ${JSON.stringify(newPoint)} : offset ${JSON.stringify(offset)}, r ${r}`);
         allPoints.push(newPoint);
         activePoints.push(newPoint);
         placed = true;
